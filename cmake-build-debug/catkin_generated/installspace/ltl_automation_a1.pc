@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: ltl_automation_a1
+Description: Description of ltl_automation_a1
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
