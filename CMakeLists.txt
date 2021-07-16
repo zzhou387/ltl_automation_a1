@@ -139,7 +139,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/ltl_automation_a1_node.cpp)
 
-add_executable(test_1 src/tutorial_1.cpp)
+add_executable(test_1 src/ltl_bt_interface_a1.cpp)
 
 target_link_libraries(test_1
   ${catkin_LIBRARIES}
