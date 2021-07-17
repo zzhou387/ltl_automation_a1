@@ -13,13 +13,15 @@ find_package(catkin REQUIRED COMPONENTS
   ltl_automaton_msgs
   roscpp
   rospy
+  roslib
   std_msgs
   behaviortree_cpp_v3
+  nav_core
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(yaml-cpp REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -122,6 +124,7 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${YAML_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -142,7 +145,13 @@ include_directories(
 add_executable(test_1 src/ltl_bt_interface_a1.cpp)
 
 target_link_libraries(test_1
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} yaml-cpp
+)
+
+add_executable(yaml_test src/yaml_test.cpp)
+
+target_link_libraries(yaml_test
+  ${catkin_LIBRARIES} yaml-cpp
 )
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -168,10 +177,10 @@ target_link_libraries(test_1
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
- catkin_install_python(PROGRAMS
-   nodes/ltl_automation_a1_node.py
-   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
+catkin_install_python(PROGRAMS
+  nodes/ltl_automation_a1_node.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 catkin_install_python(PROGRAMS
         nodes/ltl_automation_a1_node2.py

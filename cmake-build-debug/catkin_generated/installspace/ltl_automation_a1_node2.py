@@ -99,7 +99,7 @@ class LTLController(object):
     def set_pub_sub(self):
         # Setup navigation commands for nexus
         self.navigation = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-        rospy.loginfo("LTL automaton Nexus node: waiting for nexus move base action server...")
+        rospy.loginfo("LTL automaton A1 node: waiting for nexus move base action server...")
         self.navigation.wait_for_server() # wait for action server to start
 
         # Station access request publisher
@@ -124,7 +124,7 @@ class LTLController(object):
         for obstacle_name in self.obstacles.keys():
             rospy.Subscriber("/"+obstacle_name+"/current_region", String, self.obstacle_region_callback, obstacle_name, queue_size=1)
 
-        rospy.loginfo("LTL automaton Nexus node: initialized!")
+        rospy.loginfo("LTL automaton A1 node: initialized!")
 
     #----------------------------------------
     # Handle message from load state monitor
@@ -187,14 +187,14 @@ class LTLController(object):
         self.plan_index += 1
 
         # Extract command message string
-        cmd_str =  msg.data
+        cmd_str = msg.data
         action_dict = None
 
         # Check if next_move_cmd is 'None', which is output by ltl_automaton_core if the current state is not in the TS
         if cmd_str == "None":
 
             # To do: Handle when ltl_automaton_core encounteres state outside of TS (i.e. next_move_cmd = 'None')
-            rospy.logwarn('None next_move_cmd sent to LTL Nexus')
+            rospy.logwarn('None next_move_cmd sent to LTL A1')
         else:
 
             # Check if next_move_cmd is in list of actions from transition_system
@@ -208,7 +208,7 @@ class LTLController(object):
 
             # Raise error if next_move_cmd does not exist in transition system
             if not(action_dict):
-                raise ValueError("next_move_cmd not found in LTL Nexus transition system")
+                raise ValueError("next_move_cmd not found in LTL A1 transition system")
 
 
         # Reset feedbacks
@@ -344,6 +344,6 @@ if __name__ == '__main__':
         ltl_nexus = LTLController()
         rospy.spin()
     except ValueError as e:
-        rospy.logerr("LTL Nexus node: %s" %(e))
+        rospy.logerr("LTL A1 node: %s" %(e))
         sys.exit(0)
     

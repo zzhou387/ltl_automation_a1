@@ -10,6 +10,46 @@
 
 using namespace BT;
 
+
+namespace BT {
+    typedef std::vector<StringView> LTLState;
+    typedef std::vector<std::vector<StringView>> LTLState_Sequence;
+    typedef std::vector<StringView> LTLAction_Sequence;
+
+    template <> inline LTLState convertFromString(StringView str)
+    {
+
+        // We expect real numbers separated by semicolons
+        auto parts = splitString(str, ';');
+        LTLState output;
+//        if (parts.size() != 2)
+//        {
+//            throw RuntimeError("invalid input)");
+//        }
+//        else{
+//            Position2D output;
+//            output.x     = convertFromString<double>(parts[0]);
+//            output.y     = convertFromString<double>(parts[1]);
+//            return output;
+//        }
+        for(int i=0; i<parts.size(); i++){
+            output.push_back(parts[i]);
+        }
+    }
+
+    template <> inline LTLState_Sequence convertFromString(StringView str)
+    {
+
+        // We expect real numbers separated by semicolons
+        auto parts = splitString(str, ';');
+        LTLState output;
+        for(int i=0; i<parts.size(); i++){
+            output.push_back(parts[i]);
+        }
+    }
+
+} //end namespace BT
+
 namespace BTNav {
 class LTLPreCheck: public ConditionNode
 {
@@ -17,12 +57,36 @@ public:
     LTLPreCheck(const std::string& name, const NodeConfiguration& config) : ConditionNode(name, config){}
 
     static PortsList  providedPorts(){
-        return { InputPort<int>("nav_goal")};
+        return { InputPort<BT::LTLState>("ltl_state_current"), InputPort<BT::LTLState_Sequence>("ltl_state_desired_sequence")};
     }
 
     NodeStatus tick() override
     {
 
+//        auto int_1 = getInput<int>("in_arg1");
+        auto current_state = getInput<BT::LTLState>("ltl_state_current");
+        auto desired_state_seq = getInput<BT::LTLState_Sequence>("ltl_state_desired_sequence");
+        if(!desired_state_seq) {
+            return NodeStatus::FAILURE;
+        }
+        auto desired_state = desired_state_seq.value()[0];
+        if(desired_state == current_state){
+            return NodeStatus::SUCCESS;
+        } else {
+            return NodeStatus::FAILURE;
+        }
+
+    }
+
+};
+
+class UpdateLTL : public SyncActionNode
+{
+public:
+    UpdateLTL(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
+
+    static PortsList  providedPorts(){
+        return { InputPort<BT::LTLState>("ltl_state_current"), InputPort<BT::LTLState_Sequence>("ltl_state_desired_sequence")};
     }
 };
 
@@ -35,18 +99,18 @@ public:
     static PortsList providedPorts()
     {
         return { InputPort<bool>("move_base_finished"), InputPort<bool>("move_base_idle"),
-                 InputPort<int>("nav_goal"), OutputPort<std::string>("action") };
+                 InputPort<std::string>("nav_goal"), OutputPort<std::string>("action") };
     }
 
     NodeStatus tick() override
     {
-        auto nav_goal = getInput<int>("nav_goal");
-        if(!nav_goal || nav_goal.value() == 0){
+        auto nav_goal = getInput<std::string>("nav_goal");
+        if(!nav_goal || nav_goal.value() == "NONE"){
             return NodeStatus::FAILURE;
         }
 
         setOutput<std::string>("action", "MOVE_COMMAND");
-        std::cout << name() << ": MOVE_COMMAND_TO_" << nav_goal.value() << " Yield" << std::endl;
+        std::cout << name() << ": MOVE_COMMAND: " << nav_goal.value() << " Yield" << std::endl;
         setStatusRunningAndYield();
 
         while (true)
@@ -75,7 +139,7 @@ public:
 
     void halt() override
     {
-        std::cout << this->name() << " TO_" << getInput<int>("nav_goal").value() << ": halt" << std::endl;
+        std::cout << this->name() << getInput<std::string>("nav_goal").value() << ": halt" << std::endl;
         CoroActionNode::halt();
     }
 

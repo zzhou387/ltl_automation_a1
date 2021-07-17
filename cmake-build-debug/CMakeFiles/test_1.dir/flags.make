@@ -6,5 +6,5 @@ CXX_FLAGS = -g
 
 CXX_DEFINES = -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\"ltl_automation_a1\"
 
-CXX_INCLUDES = -I/home/ziyi/code/task_planning/ltl_ws/devel/.private/ltl_automaton_planner/include -I/home/ziyi/code/task_planning/ltl_ws/devel/.private/ltl_automaton_msgs/include -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp 
+CXX_INCLUDES = -I/home/ziyi/code/task_planning/ltl_ws/devel/.private/ltl_automaton_planner/include -I/home/ziyi/code/task_planning/ltl_ws/devel/.private/ltl_automaton_msgs/include -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3 
 

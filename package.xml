@@ -53,11 +53,13 @@
   <build_depend>ltl_automaton_msgs</build_depend>
   <build_depend>ltl_automaton_std_transition_systems</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>roslib</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_export_depend>ltl_automaton_planner</build_export_depend>
   <build_export_depend>ltl_automaton_msgs</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>roslib</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <exec_depend>ltl_automaton_planner</exec_depend>
@@ -65,8 +67,13 @@
   <exec_depend>ltl_automaton_std_transition_systems</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
+  <exec_depend>roslib</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <depend>behaviortree_cpp_v3</depend>
+  <depend>nav_core</depend>
+  <build_depend>yaml-cpp</build_depend>
+  <build_export_depend>yaml-cpp</build_export_depend>
+  <exec_depend>yaml-cpp</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

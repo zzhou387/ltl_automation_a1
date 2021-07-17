@@ -2,21 +2,20 @@
 // Created by ziyi on 7/8/21.
 //
 
-#include <unistd.h>
-#include <deque>
 #include <ros/ros.h>
+#include <unistd.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <behaviortree_cpp_v3/loggers/bt_zmq_publisher.h>
 #include <behaviortree_cpp_v3/loggers/bt_file_logger.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
-#include <tf2_ros/transform_listener.h>
 #include <std_msgs/builtin_string.h>
 #include <ltl_automaton_msgs/TransitionSystemStateStamped.h>
 #include <ltl_automaton_msgs/LTLPlan.h>
 #include "navigation_node.h"
 #include <yaml-cpp/yaml.h>
+#include <ros/package.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> Client;
 
@@ -26,34 +25,69 @@ class LTLA1Planner{
 public:
     LTLA1Planner(){
         client_ = std::make_shared<Client>("/move_base", true);
-        task_sub_ = nh_.subscribe<ltl_automaton_msgs::LTLPlan>("/prefix_plan", 1, &LTLA1Planner::callbackActionSequence);
+        task_sub_ = nh_.subscribe("/prefix_plan", 1, &LTLA1Planner::callbackActionSequence, this);
         ltl_state_pub_ = nh_.advertise<ltl_automaton_msgs::TransitionSystemStateStamped>("ts_state", 10, true);
+        init_params();
+        create_monitors();
         run();
     }
     ~LTLA1Planner() = default;
-    void run(){
-        // set up the blackboard to cache the lower level codes running status
+    void init_params(){
+        std::string package_name = "ltl_automation_a1";
+        // Get default tree from param
+        bt_filepath = ros::package::getPath(package_name).append("/resources/default_tree.xml");
+        nh_.getParam("bt_filepath", bt_filepath);
+        ROS_INFO("tree file: %s\n", bt_filepath.c_str());
+
+        // Get TS for param
+        std::string ts_filepath;
+        nh_.getParam("transition_system_textfile", ts_filepath);
+        transition_system_ = YAML::LoadFile(ts_filepath);
+
+        // Init ltl state message with TS
+        ltl_state_msg_.ts_state.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
+
+        // Initialize the flags for the replanning logic
         is_first = true;
         replan = false;
-//        factory_.registerNodeType<>()
+
+        // Initialize running time and index
+//        t0 = ros::Time::now().toSec();
+//        t = t0;
+    }
+
+    void create_monitors(){
+        int number_of_dimensions = transition_system_["state_dim"].size();
+        current_ltl_state_ = std::vector<std::string>(number_of_dimensions, "NONE");
+
+        for(int i=0; i<number_of_dimensions; i++){
+            auto dimension = transition_system_["state_dim"].as<std::vector<std::string>>()[i];
+            if(dimension == "2d_pose_region"){
+                a1_region_sub_ = nh_.subscribe("current_region", 100, &LTLA1Planner::region_state_callback, this);
+            } else if (dimension == "a1_load") {
+                current_ltl_state_[i] = "unloaded";
+            } else {
+                std::cout <<"state type " << dimension << " is not supported by LTL A1" << std::endl;
+            }
+        }
+
+    }
+
+    void run(){
+        // set up the blackboard to cache the lower level codes running status
+        factory_.registerNodeType<BTNav::MoveAction>("MoveAction");
+        factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
 
         my_blackboard_->set("move_base_finished", false);
         my_blackboard_->set("move_base_idle", false);
-        my_blackboard_->set("nav_goal", 0);
+        my_blackboard_->set("nav_goal", "NONE");
         my_blackboard_->set("ltl_state_current", "NONE");
-        my_blackboard_->set("ltl_state_desired", "NONE");
+        my_blackboard_->set("ltl_state_desired_sequence", "NONE");
         my_blackboard_->set("action", "NONE");
+        my_blackboard_->set("action_sequence", "NONE");
+        my_blackboard_->set("num_cycles", 1);
         my_blackboard_->debugMessage();
 
-        bt_filepath = "../resources/default_tree.xml";
-        nh_.getParam("bt_filepath", bt_filepath);
-        std::string ts_filepath;
-        nh_.getParam("transition_system_textfile", ts_filepath);
-        transition_system_ = YAML::Load(ts_filepath);
-
-
-
-        ROS_INFO("tree file: %s\n", bt_filepath.c_str());
         auto tree = std::make_unique<BT::Tree>();
         auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
 
@@ -68,6 +102,10 @@ public:
                 tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
                 zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
                 replan = false;
+            } else if (is_first && !replan){
+                ROS_INFO("Wait for the action sequence to be sent from LTL planner");
+                sleep(1);
+                continue;
             }
             // update input
             bool move_base_finished = false;
@@ -103,26 +141,43 @@ public:
 // bt
             auto result = tree->tickRoot();
             std::string action;
-            int nav_goal;
+            std::string nav_goal;
             my_blackboard_->get(std::string("action"), action);
             my_blackboard_->get(std::string("nav_goal"), nav_goal);
 
             // output
-            move_base_msgs::MoveBaseGoal current_goal;
+            YAML::Node action_dict;
+            bool sanity_check1 = false;
             if (client_->isServerConnected())
             {
                 if (action == "MOVE_COMMAND")
                 {
-                    if (nav_goal != 0)
+                    if (nav_goal == "NONE")
                     {
-                        auto top = pose_queue.front();
-                        pose_queue.pop_front();
-                        current_goal.target_pose = top;
-                        client.sendGoal(current_goal);
-                        ROS_INFO("MOVE");
+                        ROS_ERROR("No goal is set");
+                    } else {
+                        for(auto act : transition_system_["actions"]){
+                            if(act.as<std::string>() == nav_goal){
+                                action_dict = transition_system_["actions"][act.as<std::string>()];
+                                sanity_check1 = true;
+                                break;
+                            }
+                        }
+
+                        if(!sanity_check1){
+                            ROS_ERROR("next_move_cmd not found in LTL A1 transition system");
+                        }
+
+                        a1_action(action_dict);
                     }
                 }
             }
+
+            // Publish ltl current state back to the ltl planner
+            ltl_state_msg_.header.stamp = ros::Time::now();
+            ltl_state_msg_.ts_state.states = current_ltl_state_;
+            ltl_state_pub_.publish(ltl_state_msg_);
+
             ros::spinOnce();
             sleep(1);
         }
@@ -134,12 +189,46 @@ public:
         // The xml changes go here
         auto action = msg.action_sequence;
         auto ts_state = msg.ts_state_sequence;
-        std::vector<std::string> desired_state_seq;
+        std::vector<std::vector<std::string>> desired_state_seq;
+        std::vector<std::string> action_sequence;
         for(auto state : ts_state){
-            desired_state_seq.push_back(state.states.at(0));
+            desired_state_seq.push_back(state.states);
         }
-        assert(!replan);
+        for(auto act : action){
+            action_sequence.push_back(act);
+        }
+        my_blackboard_->set("ltl_state_desired_sequence", desired_state_seq);
+        my_blackboard_->set("action_sequence", action_sequence);
+        my_blackboard_->set("num_cycles", action_sequence.size());
+        if(replan){
+            ROS_ERROR("FATAL ERROR; REPLAN FLAG HAS TO BE FALSE TO GET READY FOR NEW PLAN");
+        }
         replan = true;
+    }
+
+    void a1_action(YAML::Node action_dic){
+        // Move command
+        if(action_dic["type"].as<std::string>() == "move"){
+            move_base_msgs::MoveBaseGoal current_goal;
+            auto pose = action_dic["attr"]["pose"].as<std::vector<std::vector<double>>>();
+            auto region = action_dic["attr"]["region"].as<std::string>();
+
+            current_goal.target_pose.pose.position.x = pose[0][0];
+            current_goal.target_pose.pose.position.y = pose[0][1];
+
+            current_goal.target_pose.pose.orientation.x = pose[1][0];
+            current_goal.target_pose.pose.orientation.x = pose[1][1];
+            current_goal.target_pose.pose.orientation.x = pose[1][2];
+            current_goal.target_pose.pose.orientation.x = pose[1][3];
+            client_->sendGoal(current_goal);
+        }
+
+        // TODO: other actions
+    }
+
+    void region_state_callback(const std_msgs::String& msg){
+        current_ltl_state_[0] = msg.data;
+        my_blackboard_->set("ltl_state_current", current_ltl_state_);
     }
 
 
@@ -149,18 +238,25 @@ public:
 private:
     std::shared_ptr<Client> client_;
     BehaviorTreeFactory factory_;
-    move_base_msgs::MoveBaseGoal current_goal_;
+//    move_base_msgs::MoveBaseGoal current_goal_;
     Blackboard::Ptr my_blackboard_ = Blackboard::create();
     ros::NodeHandle nh_;
     std::string bt_filepath;
-    std::vector<std::string> desired_state_seq_;
+    std::vector<std::vector<std::string>> desired_state_seq_;
+    std::vector<std::string> current_ltl_state_;
+    ltl_automaton_msgs::TransitionSystemStateStamped  ltl_state_msg_;
     YAML::Node transition_system_;
 
     ros::Subscriber task_sub_;
+    ros::Subscriber a1_region_sub_;
     ros::Publisher ltl_state_pub_;
 
     bool is_first;
     bool replan;
+
+//    double t0;
+//    double t;
+//    int plan_index = 0;
 };
 
 int main(int argc, char** argv){

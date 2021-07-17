@@ -187,7 +187,7 @@ class LTLController(object):
         self.plan_index += 1
 
         # Extract command message string
-        cmd_str =  msg.data
+        cmd_str = msg.data
         action_dict = None
 
         # Check if next_move_cmd is 'None', which is output by ltl_automaton_core if the current state is not in the TS
