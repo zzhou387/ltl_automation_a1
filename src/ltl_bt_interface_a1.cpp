@@ -35,13 +35,17 @@ public:
     void init_params(){
         std::string package_name = "ltl_automation_a1";
         // Get default tree from param
-        bt_filepath = ros::package::getPath(package_name).append("/resources/default_tree.xml");
-        nh_.getParam("bt_filepath", bt_filepath);
+        auto aaa = ros::package::getPath(package_name);
+//        bt_filepath = ros::package::getPath(package_name).append("/resources/default_tree.xml");
+//        nh_.getParam("bt_filepath", bt_filepath);
+        bt_filepath = "/home/ziyi/code/ltl_ws/src/ltl_automation_a1/resources/default_tree.xml";
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
         // Get TS for param
         std::string ts_filepath;
-        nh_.getParam("transition_system_textfile", ts_filepath);
+//        ts_filepath = ros::package::getPath(package_name).append("/config/a1_ts.yaml");
+        ts_filepath = "/home/ziyi/code/ltl_ws/src/ltl_automation_a1/config/a1_ts.yaml";
+//        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
         // Init ltl state message with TS
@@ -51,9 +55,6 @@ public:
         is_first = true;
         replan = false;
 
-        // Initialize running time and index
-//        t0 = ros::Time::now().toSec();
-//        t = t0;
     }
 
     void create_monitors(){
@@ -75,8 +76,10 @@ public:
 
     void run(){
         // set up the blackboard to cache the lower level codes running status
+        ros::Rate loop_rate(1);
         factory_.registerNodeType<BTNav::MoveAction>("MoveAction");
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
+        factory_.registerNodeType<BTNav::UpdateLTL>("UpdateLTL");
 
         my_blackboard_->set("move_base_finished", false);
         my_blackboard_->set("move_base_idle", false);
@@ -88,23 +91,31 @@ public:
         my_blackboard_->set("num_cycles", 1);
         my_blackboard_->debugMessage();
 
-        auto tree = std::make_unique<BT::Tree>();
+//        auto tree = std::make_unique<BT::Tree>();
+        auto tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
         auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
 
         while(ros::ok()){
+            // Publish ltl current state back to the ltl planner
+            ltl_state_msg_.header.stamp = ros::Time::now();
+            ltl_state_msg_.ts_state.states = current_ltl_state_;
+            ltl_state_pub_.publish(ltl_state_msg_);
+
             if(is_first && replan){
-                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
-                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+//                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
+//                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
                 is_first = false;
                 replan = false;
             } else if (!is_first && replan) {
-                zmq_publisher.reset();
-                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
-                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+//                zmq_publisher.reset();
+//                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
+//                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+                ROS_ERROR("test1: shouldn't go to here");
                 replan = false;
             } else if (is_first && !replan){
                 ROS_INFO("Wait for the action sequence to be sent from LTL planner");
-                sleep(1);
+                ros::spinOnce();
+                loop_rate.sleep();
                 continue;
             }
             // update input
@@ -156,13 +167,20 @@ public:
                     {
                         ROS_ERROR("No goal is set");
                     } else {
-                        for(auto act : transition_system_["actions"]){
-                            if(act.as<std::string>() == nav_goal){
-                                action_dict = transition_system_["actions"][act.as<std::string>()];
+                        for(YAML::const_iterator iter=transition_system_["actions"].begin(); iter != transition_system_["actions"].end(); ++iter){
+                            if (iter->first.as<std::string>() == nav_goal){
+                                action_dict = transition_system_["actions"][iter->first.as<std::string>()];
                                 sanity_check1 = true;
                                 break;
                             }
                         }
+//                        for(auto act : transition_system_["actions"]){
+//                            if(act.as<std::string>() == nav_goal){
+//                                action_dict = transition_system_["actions"][act.as<std::string>()];
+//                                sanity_check1 = true;
+//                                break;
+//                            }
+//                        }
 
                         if(!sanity_check1){
                             ROS_ERROR("next_move_cmd not found in LTL A1 transition system");
@@ -173,13 +191,8 @@ public:
                 }
             }
 
-            // Publish ltl current state back to the ltl planner
-            ltl_state_msg_.header.stamp = ros::Time::now();
-            ltl_state_msg_.ts_state.states = current_ltl_state_;
-            ltl_state_pub_.publish(ltl_state_msg_);
-
             ros::spinOnce();
-            sleep(1);
+            loop_rate.sleep();
         }
 
 
@@ -191,15 +204,20 @@ public:
         auto ts_state = msg.ts_state_sequence;
         std::vector<std::vector<std::string>> desired_state_seq;
         std::vector<std::string> action_sequence;
-        for(auto state : ts_state){
+        desired_state_seq.reserve(ts_state.size());
+        action_sequence.reserve(action.size());
+        for(const auto& state : ts_state){
             desired_state_seq.push_back(state.states);
         }
-        for(auto act : action){
+        for(const auto& act : action){
             action_sequence.push_back(act);
         }
         my_blackboard_->set("ltl_state_desired_sequence", desired_state_seq);
         my_blackboard_->set("action_sequence", action_sequence);
+        my_blackboard_->set("nav_goal", action_sequence[0]);
         my_blackboard_->set("num_cycles", action_sequence.size());
+
+        // TODO: Add if statement based on the current tree status
         if(replan){
             ROS_ERROR("FATAL ERROR; REPLAN FLAG HAS TO BE FALSE TO GET READY FOR NEW PLAN");
         }
@@ -208,18 +226,22 @@ public:
 
     void a1_action(YAML::Node action_dic){
         // Move command
+        plan_index++;
         if(action_dic["type"].as<std::string>() == "move"){
             move_base_msgs::MoveBaseGoal current_goal;
             auto pose = action_dic["attr"]["pose"].as<std::vector<std::vector<double>>>();
             auto region = action_dic["attr"]["region"].as<std::string>();
 
+            current_goal.target_pose.header.frame_id = "map";
+            current_goal.target_pose.header.seq = plan_index;
+            current_goal.target_pose.header.stamp = ros::Time::now();
             current_goal.target_pose.pose.position.x = pose[0][0];
             current_goal.target_pose.pose.position.y = pose[0][1];
 
             current_goal.target_pose.pose.orientation.x = pose[1][0];
-            current_goal.target_pose.pose.orientation.x = pose[1][1];
-            current_goal.target_pose.pose.orientation.x = pose[1][2];
-            current_goal.target_pose.pose.orientation.x = pose[1][3];
+            current_goal.target_pose.pose.orientation.y = pose[1][1];
+            current_goal.target_pose.pose.orientation.z = pose[1][2];
+            current_goal.target_pose.pose.orientation.w = pose[1][3];
             client_->sendGoal(current_goal);
         }
 
@@ -228,6 +250,7 @@ public:
 
     void region_state_callback(const std_msgs::String& msg){
         current_ltl_state_[0] = msg.data;
+        std::cout << current_ltl_state_[0] << std::endl;
         my_blackboard_->set("ltl_state_current", current_ltl_state_);
     }
 
@@ -254,13 +277,12 @@ private:
     bool is_first;
     bool replan;
 
-//    double t0;
-//    double t;
-//    int plan_index = 0;
+    int plan_index = 0;
 };
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "a1_ltl_bt");
     LTLA1Planner runner;
+    ros::spin();
     return 0;
 }

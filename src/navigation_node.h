@@ -12,40 +12,40 @@ using namespace BT;
 
 
 namespace BT {
-    typedef std::vector<StringView> LTLState;
-    typedef std::vector<std::vector<StringView>> LTLState_Sequence;
-    typedef std::vector<StringView> LTLAction_Sequence;
+    typedef std::vector<std::string> LTLState;
+    typedef std::vector<std::vector<std::string>> LTLState_Sequence;
+    typedef std::vector<std::string> LTLAction_Sequence;
 
     template <> inline LTLState convertFromString(StringView str)
     {
 
-        // We expect real numbers separated by semicolons
+        // Vector of strings separated by semicolons
         auto parts = splitString(str, ';');
         LTLState output;
-//        if (parts.size() != 2)
-//        {
-//            throw RuntimeError("invalid input)");
-//        }
-//        else{
-//            Position2D output;
-//            output.x     = convertFromString<double>(parts[0]);
-//            output.y     = convertFromString<double>(parts[1]);
-//            return output;
-//        }
-        for(int i=0; i<parts.size(); i++){
-            output.push_back(parts[i]);
+        output.reserve( parts.size() );
+        for(auto & part : parts){
+            output.push_back(std::string(part.data(), part.size()));
         }
+
+        return output;
     }
 
     template <> inline LTLState_Sequence convertFromString(StringView str)
     {
 
-        // We expect real numbers separated by semicolons
+        // Customized splitting from: "a,b,c;d,e,f"
         auto parts = splitString(str, ';');
-        LTLState output;
-        for(int i=0; i<parts.size(); i++){
-            output.push_back(parts[i]);
+        LTLState_Sequence output;
+        LTLState output_state;
+        for(auto & part : parts){
+            auto part_0 = splitString(part, ',');
+            for(auto & part_00 : part_0){
+                output_state.push_back(std::string(part_00.data(), part_00.size()));
+            }
+            output.push_back(output_state);
         }
+
+        return output;
     }
 
 } //end namespace BT
@@ -66,7 +66,7 @@ public:
 //        auto int_1 = getInput<int>("in_arg1");
         auto current_state = getInput<BT::LTLState>("ltl_state_current");
         auto desired_state_seq = getInput<BT::LTLState_Sequence>("ltl_state_desired_sequence");
-        if(!desired_state_seq) {
+        if(!desired_state_seq || !current_state) {
             return NodeStatus::FAILURE;
         }
         auto desired_state = desired_state_seq.value()[0];
@@ -86,7 +86,27 @@ public:
     UpdateLTL(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
 
     static PortsList  providedPorts(){
-        return { InputPort<BT::LTLState>("ltl_state_current"), InputPort<BT::LTLState_Sequence>("ltl_state_desired_sequence")};
+        return {BidirectionalPort<BT::LTLAction_Sequence>("action_sequence"),
+                BidirectionalPort<BT::LTLState_Sequence>("ltl_state_desired_sequence"),
+                OutputPort<std::string>("nav_goal")};
+    }
+
+    NodeStatus tick() override {
+        auto action_sequence = getInput<BT::LTLAction_Sequence>("action_sequence");
+        auto ltl_state_seq = getInput<BT::LTLState_Sequence>("ltl_state_desired_sequence");
+        if(action_sequence && ltl_state_seq) {
+            BT::LTLAction_Sequence act_seq = action_sequence.value();
+            BT::LTLState_Sequence state_seq = ltl_state_seq.value();
+            act_seq.erase(act_seq.begin());
+            state_seq.erase(state_seq.begin());
+
+            setOutput<BT::LTLState_Sequence>("ltl_state_desired_sequence", state_seq);
+            setOutput<BT::LTLAction_Sequence>("action_sequence", act_seq);
+            setOutput<std::string>("nav_goal", act_seq[0]);
+            return NodeStatus::SUCCESS;
+        } else {
+            return NodeStatus::FAILURE;
+        }
     }
 };
 

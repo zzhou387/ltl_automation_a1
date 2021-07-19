@@ -57,23 +57,19 @@ state_models:
                     r6: "goto_r6"
             r5:
                 attr:
-                    type: "station"
-                    pose: [[0,1.2], [0]]
-                    radius: 0.1
-                    angle_threshold: 0.1
-                    dist_hysteresis: 0.03
-                    angle_hysteresis: 0.1
+                    type: "square"
+                    pose: [[0,2], [0]]
+                    length: 1
+                    hysteresis: 0.05
                 connected_to:
                     r2: "goto_r2"
                     r5: "goto_r5"
             r6:
                 attr:
-                    type: "station"
-                    pose: [[1,1.2], [0]]
-                    radius: 0.1
-                    angle_threshold: 0.1
-                    dist_hysteresis: 0.03
-                    angle_hysteresis: 0.1
+                    type: "square"
+                    pose: [[2,2], [0]]
+                    length: 1
+                    hysteresis: 0.05
                 connected_to:
                     r4: "goto_r4"
                     r6: "goto_r6"
@@ -126,14 +122,14 @@ actions:
         guard: "1"
         attr:
             region: r5
-            pose: [[0,1.2,0], [0,0,0,1]]
+            pose: [[0,2,0], [0,0,0,1]]
     goto_r6:
         type: "move"
         weight: 10
         guard: "1"
         attr:
             region: r5
-            pose: [[1,1.2,0], [0,0,0,1]]
+            pose: [[2,2,0], [0,0,0,1]]
     pick_box:
         type: "pick_box"
         weight: 10

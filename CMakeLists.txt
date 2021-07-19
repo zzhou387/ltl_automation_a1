@@ -142,9 +142,9 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/ltl_automation_a1_node.cpp)
 
-add_executable(test_1 src/ltl_bt_interface_a1.cpp)
+add_executable(ltl_bt_interface_a1 src/ltl_bt_interface_a1.cpp)
 
-target_link_libraries(test_1
+target_link_libraries(ltl_bt_interface_a1
   ${catkin_LIBRARIES} yaml-cpp
 )
 
