@@ -36,15 +36,13 @@ public:
         std::string package_name = "ltl_automation_a1";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-//        bt_filepath = ros::package::getPath(package_name).append("/resources/default_tree.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/default_tree.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
-        bt_filepath = "/home/ziyi/code/ltl_ws/src/ltl_automation_a1/resources/default_tree.xml";
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
         // Get TS for param
         std::string ts_filepath;
-//        ts_filepath = ros::package::getPath(package_name).append("/config/a1_ts.yaml");
-        ts_filepath = "/home/ziyi/code/ltl_ws/src/ltl_automation_a1/config/a1_ts.yaml";
+        ts_filepath = ros::package::getPath(package_name).append("/config/a1_ts.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
@@ -174,13 +172,6 @@ public:
                                 break;
                             }
                         }
-//                        for(auto act : transition_system_["actions"]){
-//                            if(act.as<std::string>() == nav_goal){
-//                                action_dict = transition_system_["actions"][act.as<std::string>()];
-//                                sanity_check1 = true;
-//                                break;
-//                            }
-//                        }
 
                         if(!sanity_check1){
                             ROS_ERROR("next_move_cmd not found in LTL A1 transition system");
