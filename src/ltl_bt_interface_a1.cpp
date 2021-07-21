@@ -58,6 +58,7 @@ public:
     void create_monitors(){
         int number_of_dimensions = transition_system_["state_dim"].size();
         current_ltl_state_ = std::vector<std::string>(number_of_dimensions, "NONE");
+        previous_ltl_state_ = current_ltl_state_;
 
         for(int i=0; i<number_of_dimensions; i++){
             auto dimension = transition_system_["state_dim"].as<std::vector<std::string>>()[i];
@@ -92,12 +93,15 @@ public:
 //        auto tree = std::make_unique<BT::Tree>();
         auto tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
         auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
-
+        NodeStatus status = NodeStatus::RUNNING;
         while(ros::ok()){
             // Publish ltl current state back to the ltl planner
-            ltl_state_msg_.header.stamp = ros::Time::now();
-            ltl_state_msg_.ts_state.states = current_ltl_state_;
-            ltl_state_pub_.publish(ltl_state_msg_);
+            if(current_ltl_state_ != previous_ltl_state_) {
+                previous_ltl_state_ = current_ltl_state_;
+                ltl_state_msg_.header.stamp = ros::Time::now();
+                ltl_state_msg_.ts_state.states = current_ltl_state_;
+                ltl_state_pub_.publish(ltl_state_msg_);
+            }
 
             if(is_first && replan){
 //                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
@@ -105,10 +109,11 @@ public:
                 is_first = false;
                 replan = false;
             } else if (!is_first && replan) {
-//                zmq_publisher.reset();
-//                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
-//                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
-                ROS_ERROR("test1: shouldn't go to here");
+                zmq_publisher.reset();
+                status = NodeStatus::RUNNING;
+                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
+                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+                ROS_WARN("BEHAVIOR TREE RELOADED");
                 replan = false;
             } else if (is_first && !replan){
                 ROS_INFO("Wait for the action sequence to be sent from LTL planner");
@@ -145,43 +150,41 @@ public:
 
             my_blackboard_->set("move_base_finished", move_base_finished);
             my_blackboard_->set("move_base_idle", move_base_idle);
-//            my_blackboard_->set
 
-// bt
-            auto result = tree->tickRoot();
-            std::string action;
-            std::string nav_goal;
-            my_blackboard_->get(std::string("action"), action);
-            my_blackboard_->get(std::string("nav_goal"), nav_goal);
+            // bt
+            if(status != NodeStatus::SUCCESS) {
+                status = tree->tickRoot();
+                std::string action;
+                std::string nav_goal;
+                my_blackboard_->get(std::string("action"), action);
+                my_blackboard_->get(std::string("nav_goal"), nav_goal);
 
-            // output
-            YAML::Node action_dict;
-            bool sanity_check1 = false;
-            if (client_->isServerConnected())
-            {
-                if (action == "MOVE_COMMAND")
-                {
-                    if (nav_goal == "NONE")
-                    {
-                        ROS_ERROR("No goal is set");
-                    } else {
-                        for(YAML::const_iterator iter=transition_system_["actions"].begin(); iter != transition_system_["actions"].end(); ++iter){
-                            if (iter->first.as<std::string>() == nav_goal){
-                                action_dict = transition_system_["actions"][iter->first.as<std::string>()];
-                                sanity_check1 = true;
-                                break;
+                // output
+                YAML::Node action_dict;
+                bool sanity_check1 = false;
+                if (client_->isServerConnected()) {
+                    if (action == "MOVE_COMMAND") {
+                        if (nav_goal == "NONE") {
+                            ROS_ERROR("No goal is set");
+                        } else {
+                            for (YAML::const_iterator iter = transition_system_["actions"].begin();
+                                 iter != transition_system_["actions"].end(); ++iter) {
+                                if (iter->first.as<std::string>() == nav_goal) {
+                                    action_dict = transition_system_["actions"][iter->first.as<std::string>()];
+                                    sanity_check1 = true;
+                                    break;
+                                }
                             }
-                        }
 
-                        if(!sanity_check1){
-                            ROS_ERROR("next_move_cmd not found in LTL A1 transition system");
-                        }
+                            if (!sanity_check1) {
+                                ROS_ERROR("next_move_cmd not found in LTL A1 transition system");
+                            }
 
-                        a1_action(action_dict);
+                            a1_action(action_dict);
+                        }
                     }
                 }
             }
-
             ros::spinOnce();
             loop_rate.sleep();
         }
@@ -258,6 +261,7 @@ private:
     std::string bt_filepath;
     std::vector<std::vector<std::string>> desired_state_seq_;
     std::vector<std::string> current_ltl_state_;
+    std::vector<std::string> previous_ltl_state_;
     ltl_automaton_msgs::TransitionSystemStateStamped  ltl_state_msg_;
     YAML::Node transition_system_;
 

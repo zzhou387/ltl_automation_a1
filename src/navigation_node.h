@@ -67,12 +67,30 @@ public:
         auto current_state = getInput<BT::LTLState>("ltl_state_current");
         auto desired_state_seq = getInput<BT::LTLState_Sequence>("ltl_state_desired_sequence");
         if(!desired_state_seq || !current_state) {
+            std::cout << name() << ": Fetch ltl state: " << "FAILED" << std::endl << std::endl;
             return NodeStatus::FAILURE;
         }
         auto desired_state = desired_state_seq.value()[0];
-        if(desired_state == current_state){
+        if(desired_state == current_state.value()){
+            std::cout << name() << ": Check ltl state: " << "SUCCESS" << std::endl;
+            std::cout << "CURRENT: ";
+            for(const auto& curr_state : current_state.value()){
+                 std::cout << curr_state << " ";
+            }
+            std::cout << std::endl << std::endl;
             return NodeStatus::SUCCESS;
         } else {
+            std::cout << name() << ": Check ltl state: " << "FAILED" << std::endl;
+            std::cout << "GET: ";
+            for(const auto& curr_state : current_state.value()){
+                std::cout << curr_state << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "DESIRED: ";
+            for(const auto& des_state : desired_state){
+                std::cout << des_state << " ";
+            }
+            std::cout << std::endl << std::endl;
             return NodeStatus::FAILURE;
         }
 
@@ -103,8 +121,10 @@ public:
             setOutput<BT::LTLState_Sequence>("ltl_state_desired_sequence", state_seq);
             setOutput<BT::LTLAction_Sequence>("action_sequence", act_seq);
             setOutput<std::string>("nav_goal", act_seq[0]);
+            std::cout << name() << ": Update ltl state: " << "SUCCESS" << std::endl << std::endl;
             return NodeStatus::SUCCESS;
         } else {
+            std::cout << name() << ": Update ltl state: " << "FAILED" << std::endl << std::endl;
             return NodeStatus::FAILURE;
         }
     }
@@ -130,7 +150,7 @@ public:
         }
 
         setOutput<std::string>("action", "MOVE_COMMAND");
-        std::cout << name() << ": MOVE_COMMAND: " << nav_goal.value() << " Yield" << std::endl;
+        std::cout << name() << ": MOVE_COMMAND: " << nav_goal.value() << " Yield" << std::endl << std::endl;
         setStatusRunningAndYield();
 
         while (true)
@@ -140,14 +160,14 @@ public:
             auto move_base_finished = getInput<bool>("move_base_finished");
             if (move_base_finished && move_base_finished.value())
             {
-                std::cout << name() << ": move_base is finidshed: SUCCESS" << std::endl;
+                std::cout << name() << ": move_base is finidshed: SUCCESS" << std::endl << std::endl;
                 setOutput<std::string>("action", "NONE");
                 return BT::NodeStatus::SUCCESS;
             }
 
             if (move_base_idle && move_base_idle.value())
             {
-                std::cout << name() << ": move_base is idle: FAILURE" << std::endl;
+                std::cout << name() << ": move_base is idle: FAILURE" << std::endl << std::endl;
                 setOutput<std::string>("action", "NONE");
                 return BT::NodeStatus::FAILURE;
             }
