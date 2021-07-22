@@ -38,7 +38,7 @@ public:
         std::string package_name = "ltl_automation_a1";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-        bt_filepath = ros::package::getPath(package_name).append("/resources/default_tree.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_0.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
@@ -84,6 +84,9 @@ public:
         factory_.registerNodeType<BTNav::MoveAction>("MoveAction");
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
         factory_.registerNodeType<BTNav::UpdateLTL>("UpdateLTL");
+        factory_.registerNodeType<BTNav::LocomotionStart>("LocomotionStart");
+        factory_.registerNodeType<BTNav::LocomotionStatusCheck>("LocomotionStatusCheck");
+        factory_.registerNodeType<BTNav::RecoveryStand>("RecoveryStand");
 
         my_blackboard_->set("move_base_finished", false);
         my_blackboard_->set("move_base_idle", false);

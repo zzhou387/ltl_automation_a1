@@ -7,6 +7,8 @@
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 #include <string>
+#include "ros/ros.h"
+#include "quadruped_ctrl/QuadrupedCmd.h"
 
 using namespace BT;
 
@@ -113,11 +115,11 @@ public:
 
 //        auto int_1 = getInput<int>("in_arg1");
         auto loco_status = getInput<BT::Locomotion_status>("locomotion_status");
-        if(!loco_status) {
+        if(!loco_status || loco_status.value()[1] == "NONE") {
             std::cout << name() << ": Fetch locomotion status: " << "FAILED" << std::endl << std::endl;
             return NodeStatus::FAILURE;
         }
-        if(loco_status.value()[1] != "ESTOP"){
+        if(loco_status.value()[1] == "NORMAL" && loco_status.value()[0] == "LOCOMOTION"){
             std::cout << name() << ": Check locomotion operating mode: " << "SUCCESS" << std::endl;
             std::cout << "CURRENT: ";
             for(const auto& curr_state : loco_status.value()){
@@ -241,11 +243,17 @@ public:
     {
         auto loco_status = getInput<BT::Locomotion_status>("locomotion_status");
         std::string current_fsm = loco_status.value()[0];
-        if(!loco_status || current_fsm != "PASSIVE"){
+        std::string ope_mode = loco_status.value()[1];
+        if(!loco_status || current_fsm == "NONE" || ope_mode == "NONE"){
             return NodeStatus::FAILURE;
         }
 
 //        setOutput<std::string>("action", "MOVE_COMMAND");
+        quadruped_ctrl::QuadrupedCmd cmd;
+        cmd.request.cmd = 0;
+        if(ros::service::call("ControlMode", cmd)){
+            std::cout << name() << ": Sent control mode signal 0: " << std::endl << std::endl;
+        }
         std::cout << name() << ": Try recovery stand: " << " Yield" << std::endl << std::endl;
         setStatusRunningAndYield();
 
@@ -253,8 +261,9 @@ public:
         {
             loco_status = getInput<BT::Locomotion_status>("locomotion_status");
             current_fsm = loco_status.value()[0];
+            ope_mode = loco_status.value()[1];
 
-            if (loco_status && current_fsm == "STAND_UP")
+            if (loco_status && current_fsm == "STAND_UP" && ope_mode == "NORMAL")
             {
                 std::cout << name() << ": recovery standup is finidshed: SUCCESS" << std::endl << std::endl;
                 return BT::NodeStatus::SUCCESS;
@@ -276,6 +285,10 @@ public:
         CoroActionNode::halt();
     }
 
+//private:
+//    ros::NodeHandle n_;
+//    ros::ServiceClient client;
+
 };
 
 class LocomotionStart : public CoroActionNode
@@ -293,28 +306,39 @@ public:
     {
         auto loco_status = getInput<BT::Locomotion_status>("locomotion_status");
         std::string current_fsm = loco_status.value()[0];
-        if(!loco_status || current_fsm != "PASSIVE"){
+        std::string ope_mode = loco_status.value()[1];
+        if(!loco_status || current_fsm == "NONE" || ope_mode == "NONE"){
             return NodeStatus::FAILURE;
         }
 
-//        setOutput<std::string>("action", "MOVE_COMMAND");
-        std::cout << name() << ": Try recovery stand: " << " Yield" << std::endl << std::endl;
+        if(ope_mode == "ESTOP"){
+            std::cout << "SHOULDN'T HAPPEN! SOMETHING WRONG WITH PREVIOUS NODES" << std::endl;
+            return NodeStatus::FAILURE;
+        }
+
+        quadruped_ctrl::QuadrupedCmd cmd;
+        cmd.request.cmd = 2;
+        if(ros::service::call("ControlMode", cmd)){
+            std::cout << name() << ": Sent control mode signal 2: " << std::endl << std::endl;
+        }
+        std::cout << name() << ": Try start locomotion: " << " Yield" << std::endl << std::endl;
         setStatusRunningAndYield();
 
         while (true)
         {
             loco_status = getInput<BT::Locomotion_status>("locomotion_status");
             current_fsm = loco_status.value()[0];
+            ope_mode = loco_status.value()[1];
 
-            if (loco_status && current_fsm == "STAND_UP")
+            if (loco_status && current_fsm == "LOCOMOTION" && ope_mode == "NORMAL")
             {
-                std::cout << name() << ": recovery standup is finidshed: SUCCESS" << std::endl << std::endl;
+                std::cout << name() << ": locomotion bootup is finidshed: SUCCESS" << std::endl << std::endl;
                 return BT::NodeStatus::SUCCESS;
             }
 
-            if (!loco_status)
+            if (!loco_status || ope_mode == "ESTOP")
             {
-                std::cout << name() << ": recovery standup is: FAILURE" << std::endl << std::endl;
+                std::cout << name() << ": locomotion bootup is: FAILURE" << std::endl << std::endl;
                 return BT::NodeStatus::FAILURE;
             }
 
