@@ -15,6 +15,7 @@ namespace BT {
     typedef std::vector<std::string> LTLState;
     typedef std::vector<std::vector<std::string>> LTLState_Sequence;
     typedef std::vector<std::string> LTLAction_Sequence;
+    typedef std::vector<std::string> Locomotion_status;
 
     template <> inline LTLState convertFromString(StringView str)
     {
@@ -89,6 +90,46 @@ public:
             std::cout << "DESIRED: ";
             for(const auto& des_state : desired_state){
                 std::cout << des_state << " ";
+            }
+            std::cout << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+
+    }
+
+};
+
+class LocomotionStatusCheck: public ConditionNode
+{
+public:
+    LocomotionStatusCheck(const std::string& name, const NodeConfiguration& config) : ConditionNode(name, config){}
+
+    static PortsList  providedPorts(){
+        return { InputPort<BT::Locomotion_status>("locomotion_status")};
+    }
+
+    NodeStatus tick() override
+    {
+
+//        auto int_1 = getInput<int>("in_arg1");
+        auto loco_status = getInput<BT::Locomotion_status>("locomotion_status");
+        if(!loco_status) {
+            std::cout << name() << ": Fetch locomotion status: " << "FAILED" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+        if(loco_status.value()[1] != "ESTOP"){
+            std::cout << name() << ": Check locomotion operating mode: " << "SUCCESS" << std::endl;
+            std::cout << "CURRENT: ";
+            for(const auto& curr_state : loco_status.value()){
+                std::cout << curr_state << " ";
+            }
+            std::cout << std::endl << std::endl;
+            return NodeStatus::SUCCESS;
+        } else {
+            std::cout << name() << ": Check locomotion operating mode: " << "FAILED" << std::endl;
+            std::cout << "CURRENT: ";
+            for(const auto& curr_state : loco_status.value()){
+                std::cout << curr_state << " ";
             }
             std::cout << std::endl << std::endl;
             return NodeStatus::FAILURE;
@@ -185,6 +226,109 @@ public:
 
 };
 
+class RecoveryStand : public CoroActionNode
+{
+public:
+    RecoveryStand (const std::string& name, const NodeConfiguration& config) : CoroActionNode(name, config)
+    {}
+
+    static PortsList providedPorts()
+    {
+        return { InputPort<BT::Locomotion_status>("locomotion_status")};
+    }
+
+    NodeStatus tick() override
+    {
+        auto loco_status = getInput<BT::Locomotion_status>("locomotion_status");
+        std::string current_fsm = loco_status.value()[0];
+        if(!loco_status || current_fsm != "PASSIVE"){
+            return NodeStatus::FAILURE;
+        }
+
+//        setOutput<std::string>("action", "MOVE_COMMAND");
+        std::cout << name() << ": Try recovery stand: " << " Yield" << std::endl << std::endl;
+        setStatusRunningAndYield();
+
+        while (true)
+        {
+            loco_status = getInput<BT::Locomotion_status>("locomotion_status");
+            current_fsm = loco_status.value()[0];
+
+            if (loco_status && current_fsm == "STAND_UP")
+            {
+                std::cout << name() << ": recovery standup is finidshed: SUCCESS" << std::endl << std::endl;
+                return BT::NodeStatus::SUCCESS;
+            }
+
+            if (!loco_status)
+            {
+                std::cout << name() << ": recovery standup is: FAILURE" << std::endl << std::endl;
+                return BT::NodeStatus::FAILURE;
+            }
+
+            setStatusRunningAndYield();
+        }
+    }
+
+    void halt() override
+    {
+        std::cout << this->name() << ": halt" << std::endl;
+        CoroActionNode::halt();
+    }
+
+};
+
+class LocomotionStart : public CoroActionNode
+{
+public:
+    LocomotionStart (const std::string& name, const NodeConfiguration& config) : CoroActionNode(name, config)
+    {}
+
+    static PortsList providedPorts()
+    {
+        return { InputPort<BT::Locomotion_status>("locomotion_status")};
+    }
+
+    NodeStatus tick() override
+    {
+        auto loco_status = getInput<BT::Locomotion_status>("locomotion_status");
+        std::string current_fsm = loco_status.value()[0];
+        if(!loco_status || current_fsm != "PASSIVE"){
+            return NodeStatus::FAILURE;
+        }
+
+//        setOutput<std::string>("action", "MOVE_COMMAND");
+        std::cout << name() << ": Try recovery stand: " << " Yield" << std::endl << std::endl;
+        setStatusRunningAndYield();
+
+        while (true)
+        {
+            loco_status = getInput<BT::Locomotion_status>("locomotion_status");
+            current_fsm = loco_status.value()[0];
+
+            if (loco_status && current_fsm == "STAND_UP")
+            {
+                std::cout << name() << ": recovery standup is finidshed: SUCCESS" << std::endl << std::endl;
+                return BT::NodeStatus::SUCCESS;
+            }
+
+            if (!loco_status)
+            {
+                std::cout << name() << ": recovery standup is: FAILURE" << std::endl << std::endl;
+                return BT::NodeStatus::FAILURE;
+            }
+
+            setStatusRunningAndYield();
+        }
+    }
+
+    void halt() override
+    {
+        std::cout << this->name() << ": halt" << std::endl;
+        CoroActionNode::halt();
+    }
+
+};
 } // end namespace BTNav
 
 #endif //LTL_AUTOMATION_A1_NAVIGATION_NODE_H

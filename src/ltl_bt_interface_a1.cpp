@@ -16,6 +16,7 @@
 #include "navigation_node.h"
 #include <yaml-cpp/yaml.h>
 #include <ros/package.h>
+#include "quadruped_ctrl/locomotion_status.h"
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> Client;
 
@@ -26,6 +27,7 @@ public:
     LTLA1Planner(){
         client_ = std::make_shared<Client>("/move_base", true);
         task_sub_ = nh_.subscribe("/prefix_plan", 1, &LTLA1Planner::callbackActionSequence, this);
+        loco_status_sub_ = nh_.subscribe("/locomotion_status", 1, &LTLA1Planner::callbackLocomotionStatus, this);
         ltl_state_pub_ = nh_.advertise<ltl_automaton_msgs::TransitionSystemStateStamped>("ts_state", 10, true);
         init_params();
         create_monitors();
@@ -48,6 +50,9 @@ public:
 
         // Init ltl state message with TS
         ltl_state_msg_.ts_state.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
+
+        // Init locomotion status: 0: current_FSM; 1: operating mode
+        loco_status = std::vector<std::string>(2, "NONE");
 
         // Initialize the flags for the replanning logic
         is_first = true;
@@ -88,6 +93,7 @@ public:
         my_blackboard_->set("action", "NONE");
         my_blackboard_->set("action_sequence", "NONE");
         my_blackboard_->set("num_cycles", 1);
+        my_blackboard_->set("locomotion_status", "NONE");
         my_blackboard_->debugMessage();
 
 //        auto tree = std::make_unique<BT::Tree>();
@@ -248,6 +254,12 @@ public:
         my_blackboard_->set("ltl_state_current", current_ltl_state_);
     }
 
+    void callbackLocomotionStatus(const quadruped_ctrl::locomotion_status& msg){
+        loco_status[0] = msg.current_fsm;
+        loco_status[1] = msg.operating_mode;
+        my_blackboard_->set("locomotion_status", loco_status);
+    }
+
 
 
 
@@ -264,9 +276,11 @@ private:
     std::vector<std::string> previous_ltl_state_;
     ltl_automaton_msgs::TransitionSystemStateStamped  ltl_state_msg_;
     YAML::Node transition_system_;
+    std::vector<std::string> loco_status;
 
     ros::Subscriber task_sub_;
     ros::Subscriber a1_region_sub_;
+    ros::Subscriber loco_status_sub_;
     ros::Publisher ltl_state_pub_;
 
     bool is_first;

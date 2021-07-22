@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   behaviortree_cpp_v3
   nav_core
+  quadruped_ctrl
 )
 
 ## System dependencies are found with CMake's conventions
