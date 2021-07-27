@@ -11,6 +11,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 #include <std_msgs/builtin_string.h>
+#include <std_msgs/Int8.h>
 #include <ltl_automaton_msgs/TransitionSystemStateStamped.h>
 #include <ltl_automaton_msgs/LTLPlan.h>
 #include "navigation_node.h"
@@ -29,6 +30,7 @@ public:
         task_sub_ = nh_.subscribe("/prefix_plan", 1, &LTLA1Planner::callbackActionSequence, this);
         loco_status_sub_ = nh_.subscribe("/locomotion_status", 1, &LTLA1Planner::callbackLocomotionStatus, this);
         ltl_state_pub_ = nh_.advertise<ltl_automaton_msgs::TransitionSystemStateStamped>("ts_state", 10, true);
+        replanning_request_ = nh_.advertise<std_msgs::Int8>("replanning_request", 1);
         init_params();
         create_monitors();
         run();
@@ -38,7 +40,7 @@ public:
         std::string package_name = "ltl_automation_a1";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_0.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_1.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
@@ -87,6 +89,8 @@ public:
         factory_.registerNodeType<BTNav::LocomotionStart>("LocomotionStart");
         factory_.registerNodeType<BTNav::LocomotionStatusCheck>("LocomotionStatusCheck");
         factory_.registerNodeType<BTNav::RecoveryStand>("RecoveryStand");
+        factory_.registerNodeType<BTNav::ReplanningRequestLevel2>("ReplanningRequestLevel2");
+        factory_.registerNodeType<BTNav::ReplanningRequestLevel3>("ReplanningRequestLevel3");
 
         my_blackboard_->set("move_base_finished", false);
         my_blackboard_->set("move_base_idle", false);
@@ -97,20 +101,20 @@ public:
         my_blackboard_->set("action_sequence", "NONE");
         my_blackboard_->set("num_cycles", 1);
         my_blackboard_->set("locomotion_status", "NONE");
+        my_blackboard_->set("replanning_request", 0);
         my_blackboard_->debugMessage();
 
 //        auto tree = std::make_unique<BT::Tree>();
         auto tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
         auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
         NodeStatus status = NodeStatus::RUNNING;
+
+        // Send the initial LTL state
+        ltl_state_msg_.header.stamp = ros::Time::now();
+        ltl_state_msg_.ts_state.states = current_ltl_state_;
+        ltl_state_pub_.publish(ltl_state_msg_);
+
         while(ros::ok()){
-            // Publish ltl current state back to the ltl planner
-            if(current_ltl_state_ != previous_ltl_state_) {
-                previous_ltl_state_ = current_ltl_state_;
-                ltl_state_msg_.header.stamp = ros::Time::now();
-                ltl_state_msg_.ts_state.states = current_ltl_state_;
-                ltl_state_pub_.publish(ltl_state_msg_);
-            }
 
             if(is_first && replan){
 //                tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
@@ -194,6 +198,27 @@ public:
                     }
                 }
             }
+
+            // Publish ltl current state back to the ltl planner
+            if(current_ltl_state_ != previous_ltl_state_) {
+                previous_ltl_state_ = current_ltl_state_;
+                ltl_state_msg_.header.stamp = ros::Time::now();
+                ltl_state_msg_.ts_state.states = current_ltl_state_;
+                ltl_state_pub_.publish(ltl_state_msg_);
+            }
+
+            // publish the replanning status and ltl current state back to the ltl planner
+            int replanning_stat;
+            my_blackboard_->get(std::string("replanning_request"), replanning_stat);
+            replanning_status.data = replanning_stat;
+            if(replanning_status.data != 0){
+//                previous_ltl_state_ = current_ltl_state_;
+//                ltl_state_msg_.header.stamp = ros::Time::now();
+//                ltl_state_msg_.ts_state.states = current_ltl_state_;
+//                ltl_state_pub_.publish(ltl_state_msg_);
+                replanning_request_.publish(replanning_status);
+            }
+
             ros::spinOnce();
             loop_rate.sleep();
         }
@@ -219,6 +244,7 @@ public:
         my_blackboard_->set("action_sequence", action_sequence);
         my_blackboard_->set("nav_goal", action_sequence[0]);
         my_blackboard_->set("num_cycles", action_sequence.size());
+        my_blackboard_->set("replanning_request", 0);
 
         // TODO: Add if statement based on the current tree status
         if(replan){
@@ -285,6 +311,8 @@ private:
     ros::Subscriber a1_region_sub_;
     ros::Subscriber loco_status_sub_;
     ros::Publisher ltl_state_pub_;
+    ros::Publisher replanning_request_;
+    std_msgs::Int8 replanning_status;
 
     bool is_first;
     bool replan;

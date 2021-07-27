@@ -173,6 +173,50 @@ public:
     }
 };
 
+class ReplanningRequestLevel2 : public SyncActionNode
+{
+public:
+    ReplanningRequestLevel2(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
+
+    static PortsList  providedPorts(){
+        return {BidirectionalPort<int>("replanning_request")};
+    }
+
+    NodeStatus tick() override {
+        auto replanning_request = getInput<int>("replanning_request");
+        if(replanning_request && replanning_request.value() == 0) {
+            setOutput<int>("replanning_request", 2);
+            std::cout << name() << ": replanning request Level " << replanning_request.value() << " submitted: SUCCESS" << std::endl << std::endl;
+            return NodeStatus::SUCCESS;
+        } else {
+            std::cout << name() << ": replanning request " << "FAILED" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+    }
+};
+
+class ReplanningRequestLevel3 : public SyncActionNode
+{
+public:
+    ReplanningRequestLevel3(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
+
+    static PortsList  providedPorts(){
+        return {BidirectionalPort<int>("replanning_request")};
+    }
+
+    NodeStatus tick() override {
+        auto replanning_request = getInput<int>("replanning_request");
+        if(replanning_request && replanning_request.value() == 0) {
+            setOutput<int>("replanning_request", 3);
+            std::cout << name() << ": replanning request Level " << replanning_request.value() << " submitted: SUCCESS" << std::endl << std::endl;
+            return NodeStatus::SUCCESS;
+        } else {
+            std::cout << name() << ": replanning request " << "FAILED" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+    }
+};
+
 class MoveAction : public CoroActionNode
 {
 public:
