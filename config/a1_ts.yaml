@@ -17,7 +17,7 @@ state_models:
                 attr:
                     type: "square"
                     pose: [[0,0], [0]]
-                    length: 1
+                    length: 2
                     hysteresis: 0.05
                 connected_to:
                     r1: "goto_r1" 
@@ -26,8 +26,8 @@ state_models:
             r2:
                 attr:
                     type: "square"
-                    pose: [[0,1], [0]]
-                    length: 1
+                    pose: [[0,5], [0]]
+                    length: 2
                     hysteresis: 0.05
                 connected_to:
                     r1: "goto_r1"
@@ -37,8 +37,8 @@ state_models:
             r3:
                 attr:
                     type: "square"
-                    pose: [[1,0], [0]]
-                    length: 1
+                    pose: [[0,11], [0]]
+                    length: 2
                     hysteresis: 0.05
                 connected_to:
                     r1: "goto_r1"
@@ -47,8 +47,8 @@ state_models:
             r4:
                 attr:
                     type: "square"
-                    pose: [[1,1], [0]]
-                    length: 1
+                    pose: [[-9,0], [0]]
+                    length: 2
                     hysteresis: 0.05
                 connected_to:
                     r2: "goto_r2"
@@ -58,8 +58,8 @@ state_models:
             r5:
                 attr:
                     type: "square"
-                    pose: [[0,2], [0]]
-                    length: 1
+                    pose: [[-9,5], [0]]
+                    length: 1.5
                     hysteresis: 0.05
                 connected_to:
                     r2: "goto_r2"
@@ -67,8 +67,8 @@ state_models:
             r6:
                 attr:
                     type: "square"
-                    pose: [[2,2], [0]]
-                    length: 1
+                    pose: [[-9,11], [0]]
+                    length: 1.5
                     hysteresis: 0.05
                 connected_to:
                     r4: "goto_r4"
@@ -101,35 +101,35 @@ actions:
         guard: "1"
         attr:
             region: r2
-            pose: [[0,1,0], [0,0,0,1]]
+            pose: [[0,5,0], [0,0,0,1]]
     goto_r3:
         type: "move"
         weight: 10
         guard: "1"
         attr:
             region: r3
-            pose: [[1,0,0], [0,0,0,1]]
+            pose: [[0,11,0], [0,0,0,1]]
     goto_r4:
         type: "move"
         weight: 10
         guard: "1"
         attr:
             region: r4
-            pose: [[1,1,0], [0,0,0,1]]
+            pose: [[-9,0,0], [0,0,0,1]]
     goto_r5:
         type: "move"
         weight: 10
         guard: "1"
         attr:
             region: r5
-            pose: [[0,2,0], [0,0,0,1]]
+            pose: [[-9,5,0], [0,0,0,1]]
     goto_r6:
         type: "move"
         weight: 10
         guard: "1"
         attr:
             region: r5
-            pose: [[2,2,0], [0,0,0,1]]
+            pose: [[-9,11,0], [0,0,0,1]]
     pick_box:
         type: "pick_box"
         weight: 10
