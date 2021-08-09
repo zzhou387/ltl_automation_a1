@@ -27,7 +27,7 @@
   <!-- Run HIL nodes -->
   <!-- <node name="hil_vel_cmd_mixer" pkg="ltl_automaton_hil_mic" type="vel_cmd_mix_initiative_controller.py" output="screen" /> -->
 
-   Run the gazebo world
+  <!-- Run the gazebo world-->
   <include file="$(find unitree_bringup)/launch/gazebo.launch">
     <arg name="world_name" value="mrdc"/>
     <arg name="world_format" value="model"/>
