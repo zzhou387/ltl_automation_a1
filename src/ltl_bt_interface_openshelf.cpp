@@ -1,5 +1,5 @@
 //
-// Created by ziyi on 7/8/21.
+// Created by ziyi on 8/9/21.
 //
 
 #include <ros/ros.h>
@@ -28,8 +28,7 @@ public:
     LTLA1Planner(){
         client_ = std::make_shared<Client>("/move_base", true);
         task_sub_ = nh_.subscribe("/action_plan", 1, &LTLA1Planner::callbackActionSequence, this);
-        loco_status_sub_ = nh_.subscribe("/locomotion_status", 1, &LTLA1Planner::callbackLocomotionStatus, this);
-        ltl_state_pub_ = nh_.advertise<ltl_automaton_msgs::TransitionSystemStateStamped>("ts_state", 10, true);
+        ltl_state_pub_ = nh_.advertise<ltl_automaton_msgs::TransitionSystemStateStamped>("/ts_state", 10, true);
         replanning_request_ = nh_.advertise<std_msgs::Int8>("replanning_request", 1);
         init_params();
         create_monitors();
@@ -40,13 +39,13 @@ public:
         std::string package_name = "ltl_automation_a1";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_1.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_mobile.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
         // Get TS for param
         std::string ts_filepath;
-        ts_filepath = ros::package::getPath(package_name).append("/config/example_ts_dog.yaml");
+        ts_filepath = ros::package::getPath(package_name).append("/config/example_ts.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
@@ -54,7 +53,7 @@ public:
         ltl_state_msg_.ts_state.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
 
         // Init locomotion status: 0: current_FSM; 1: operating mode
-        loco_status = std::vector<std::string>(2, "NONE");
+//        loco_status = std::vector<std::string>(2, "NONE");
 
         // Initialize the flags for the replanning logic
         is_first = true;
@@ -86,9 +85,6 @@ public:
         factory_.registerNodeType<BTNav::MoveAction>("MoveAction");
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
         factory_.registerNodeType<BTNav::UpdateLTL>("UpdateLTL");
-        factory_.registerNodeType<BTNav::LocomotionStart>("LocomotionStart");
-        factory_.registerNodeType<BTNav::LocomotionStatusCheck>("LocomotionStatusCheck");
-        factory_.registerNodeType<BTNav::RecoveryStand>("RecoveryStand");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel2>("ReplanningRequestLevel2");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel3>("ReplanningRequestLevel3");
 
@@ -100,7 +96,7 @@ public:
         my_blackboard_->set("action", "NONE");
         my_blackboard_->set("action_sequence", "NONE");
         my_blackboard_->set("num_cycles", 1);
-        my_blackboard_->set("locomotion_status", "NONE");
+//        my_blackboard_->set("locomotion_status", "NONE");
         my_blackboard_->set("replanning_request", 0);
         my_blackboard_->debugMessage();
 
@@ -193,7 +189,7 @@ public:
                                 ROS_ERROR("next_move_cmd not found in LTL A1 transition system");
                             }
 
-                            a1_action(action_dict);
+                            openshelf_action(action_dict);
                         }
                     }
                 }
@@ -253,7 +249,7 @@ public:
         replan = true;
     }
 
-    void a1_action(YAML::Node action_dic){
+    void openshelf_action(YAML::Node action_dic){
         // Move command
         plan_index++;
         if(action_dic["type"].as<std::string>() == "move"){
@@ -283,12 +279,6 @@ public:
         my_blackboard_->set("ltl_state_current", current_ltl_state_);
     }
 
-    void callbackLocomotionStatus(const quadruped_ctrl::locomotion_status& msg){
-        loco_status[0] = msg.current_fsm;
-        loco_status[1] = msg.operating_mode;
-        my_blackboard_->set("locomotion_status", loco_status);
-    }
-
 
 
 
@@ -305,11 +295,9 @@ private:
     std::vector<std::string> previous_ltl_state_;
     ltl_automaton_msgs::TransitionSystemStateStamped  ltl_state_msg_;
     YAML::Node transition_system_;
-    std::vector<std::string> loco_status;
 
     ros::Subscriber task_sub_;
     ros::Subscriber a1_region_sub_;
-    ros::Subscriber loco_status_sub_;
     ros::Publisher ltl_state_pub_;
     ros::Publisher replanning_request_;
     std_msgs::Int8 replanning_status;
@@ -321,7 +309,7 @@ private:
 };
 
 int main(int argc, char** argv){
-    ros::init(argc, argv, "a1_ltl_bt");
+    ros::init(argc, argv, "openshelf_ltl_bt");
     LTLA1Planner runner;
     ros::spin();
     return 0;
