@@ -22,6 +22,13 @@
     <remap from="current_region" to="$(arg agent_name)/current_region" />
   </node>
 
+  <!-- Run Openshelf navigation -->
+  <include file="$(find openshelf7_navigation)/launch/navigate_mocap.launch">
+    <arg name="agent_name" value="$(arg agent_name)" />
+    <arg name="run_mocap" value="false"/>
+    <arg name="launch_map" value="false"/>
+  </include>
+
   <!-- Run BT node -->
   <node name="ltl_bt_interface_openshelf" pkg="ltl_automation_a1" type="ltl_bt_interface_openshelf" required="true" output="screen">
     <remap from="transition_system_textfile" to="transition_system_mobile_textfile" />
@@ -29,12 +36,5 @@
     <remap from="current_region" to="$(arg agent_name)/current_region" />
     <remap from="/action_plan" to="$(arg plan_name)" />
   </node>
-
-  <!-- Run Openshelf navigation -->
-  <include file="$(find openshelf7_navigation)/launch/navigate_mocap.launch">
-    <arg name="agent_name" value="$(arg agent_name)" />
-    <arg name="run_mocap" value="false"/>
-    <arg name="launch_map" value="false"/>
-  </include>
 
 </launch>

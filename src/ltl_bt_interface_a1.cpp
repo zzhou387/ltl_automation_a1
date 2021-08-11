@@ -106,7 +106,7 @@ public:
 
 //        auto tree = std::make_unique<BT::Tree>();
         auto tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
-        auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+//        auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
         NodeStatus status = NodeStatus::RUNNING;
 
         // Send the initial LTL state
@@ -122,10 +122,10 @@ public:
                 is_first = false;
                 replan = false;
             } else if (!is_first && replan) {
-                zmq_publisher.reset();
+//                zmq_publisher.reset();
                 status = NodeStatus::RUNNING;
                 tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
-                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+//                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
                 ROS_WARN("BEHAVIOR TREE RELOADED");
                 replan = false;
             } else if (is_first && !replan){
