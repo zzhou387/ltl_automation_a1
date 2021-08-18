@@ -30,7 +30,7 @@
                     <Fallback>
                         <Action ID="MoveAction" action="{action}" move_base_finished="{move_base_finished}" move_base_idle="{move_base_idle}" nav_goal="{nav_goal}"/>
                         <ForceFailure>
-                            <Action ID="ReplanningRequestLevel3" ltl_state_current="" ltl_state_executed_sequence="" replanning_request="{replanning_request}"/>
+                            <Action ID="ReplanningRequestLevel3" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="" replanning_request="{replanning_request}"/>
                         </ForceFailure>
                     </Fallback>
                 </ReactiveSequence>
