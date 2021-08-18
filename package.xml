@@ -49,6 +49,7 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
   <build_depend>ltl_automaton_planner</build_depend>
   <build_depend>ltl_automaton_msgs</build_depend>
   <build_depend>ltl_automaton_std_transition_systems</build_depend>
@@ -64,6 +65,7 @@
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>quadruped_ctrl</build_export_depend>
+  <build_export_depend>message_generation</build_export_depend>
   <exec_depend>ltl_automaton_planner</exec_depend>
   <exec_depend>ltl_automaton_msgs</exec_depend>
   <exec_depend>ltl_automaton_std_transition_systems</exec_depend>
@@ -72,6 +74,7 @@
   <exec_depend>roslib</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>quadruped_ctrl</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
   <depend>behaviortree_cpp_v3</depend>
   <depend>nav_core</depend>
   <build_depend>yaml-cpp</build_depend>

@@ -7,11 +7,11 @@
 #   2d_point_region (2D point [x, y] without orientation)
 #   nexus_load
 
-state_dim: ["2d_pose_region", "a1_load"]
+state_dim: ["2d_pose_region"]
 state_models:
     2d_pose_region:
         ts_type: "2d_pose_region"
-        initial: "r1"
+        initial: "r2"
         nodes: 
             r1:
                 attr:
@@ -73,19 +73,19 @@ state_models:
                 connected_to:
                     r4: "goto_r4"
                     r6: "goto_r6"
-    a1_load:
-        ts_type: "a1_load"
-        initial: "unloaded"
-        nodes:
-            unloaded:
-                connected_to:
-                    loaded_box: "pick_box"
-            loaded_box:
-                connected_to:
-                    loaded_assembly: "pick_assembly"
-            loaded_assembly:
-                connected_to:
-                    unloaded: "deliver_assembly"
+#    a1_load:
+#        ts_type: "a1_load"
+#        initial: "unloaded"
+#        nodes:
+#            unloaded:
+#                connected_to:
+#                    loaded_box: "pick_box"
+#            loaded_box:
+#                connected_to:
+#                    loaded_assembly: "pick_assembly"
+#            loaded_assembly:
+#                connected_to:
+#                    unloaded: "deliver_assembly"
 
 actions:
     goto_r1:
@@ -130,17 +130,17 @@ actions:
         attr:
             region: r5
             pose: [[-9,11,0], [0,0,0,1]]
-    pick_box:
-        type: "pick_box"
-        weight: 10
-        guard: "r5"
-    pick_assembly:
-        type: "pick_assembly"
-        weight: 10
-        guard: "r6"
-    deliver_assembly:
-        type: "deliver_assembly"
-        weight: 10
-        guard: "r1"
+#    pick_box:
+#        type: "pick_box"
+#        weight: 10
+#        guard: "r5"
+#    pick_assembly:
+#        type: "pick_assembly"
+#        weight: 10
+#        guard: "r6"
+#    deliver_assembly:
+#        type: "deliver_assembly"
+#        weight: 10
+#        guard: "r1"
              
 

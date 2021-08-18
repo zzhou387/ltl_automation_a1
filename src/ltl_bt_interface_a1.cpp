@@ -18,6 +18,7 @@
 #include <yaml-cpp/yaml.h>
 #include <ros/package.h>
 #include "quadruped_ctrl/locomotion_status.h"
+#include "ltl_automation_a1/LTLTrace.h"
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> Client;
 
@@ -31,6 +32,8 @@ public:
         loco_status_sub_ = nh_.subscribe("/locomotion_status", 1, &LTLA1Planner::callbackLocomotionStatus, this);
         ltl_state_pub_ = nh_.advertise<ltl_automaton_msgs::TransitionSystemStateStamped>("ts_state", 10, true);
         replanning_request_ = nh_.advertise<std_msgs::Int8>("replanning_request", 1);
+        ltl_trace_pub_ = nh_.advertise<ltl_automaton_msgs::LTLPlan>("ltl_trace", 10, true);
+        ros::ServiceServer service = nh_.advertiseService("synchronization_service", &LTLA1Planner::callbackLTLTrace, this);
         init_params();
         create_monitors();
         run();
@@ -46,7 +49,7 @@ public:
 
         // Get TS for param
         std::string ts_filepath;
-        ts_filepath = ros::package::getPath(package_name).append("/config/example_ts_dog.yaml");
+        ts_filepath = ros::package::getPath(package_name).append("/config/a1_ts.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
@@ -97,8 +100,10 @@ public:
         my_blackboard_->set("nav_goal", "NONE");
         my_blackboard_->set("ltl_state_current", "NONE");
         my_blackboard_->set("ltl_state_desired_sequence", "NONE");
+        my_blackboard_->set("ltl_state_executed_sequence", "NONE");
         my_blackboard_->set("action", "NONE");
         my_blackboard_->set("action_sequence", "NONE");
+        my_blackboard_->set("action_sequence_executed", "NONE");
         my_blackboard_->set("num_cycles", 1);
         my_blackboard_->set("locomotion_status", "NONE");
         my_blackboard_->set("replanning_request", 0);
@@ -165,7 +170,7 @@ public:
             my_blackboard_->set("move_base_idle", move_base_idle);
 
             // bt
-            if(status != NodeStatus::SUCCESS) {
+            if(status == NodeStatus::RUNNING) {
                 status = tree->tickRoot();
                 std::string action;
                 std::string nav_goal;
@@ -197,27 +202,39 @@ public:
                         }
                     }
                 }
+                // publish the replanning status and ltl current state back to the ltl planner
+                int replanning_stat;
+                my_blackboard_->get(std::string("replanning_request"), replanning_stat);
+                replanning_status.data = replanning_stat;
+                if(replanning_status.data != 0){
+                    // Get the current action and TS state history
+                    BT::LTLState_Sequence state_trace;
+                    my_blackboard_->get(std::string("ltl_state_executed_sequence"), state_trace);
+                    BT::LTLAction_Sequence  act_trace;
+                    my_blackboard_->get(std::string("action_sequence_executed"), act_trace);
+
+                    // Publish the current action and TS state history
+                    ltl_trace_msg_.header.stamp = ros::Time::now();
+                    ltl_trace_msg_.action_sequence = act_trace;
+                    ltl_trace_msg_.ts_state_sequence.clear();
+                    for(const auto& state_0 : state_trace){
+                        ltl_automaton_msgs::TransitionSystemState s;
+                        s.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
+                        s.states = state_0;
+                        ltl_trace_msg_.ts_state_sequence.push_back(s);
+                    }
+                    ltl_trace_pub_.publish(ltl_trace_msg_);
+                    replanning_request_.publish(replanning_status);
+                }
             }
 
             // Publish ltl current state back to the ltl planner
-            if(current_ltl_state_ != previous_ltl_state_) {
-                previous_ltl_state_ = current_ltl_state_;
-                ltl_state_msg_.header.stamp = ros::Time::now();
-                ltl_state_msg_.ts_state.states = current_ltl_state_;
-                ltl_state_pub_.publish(ltl_state_msg_);
-            }
-
-            // publish the replanning status and ltl current state back to the ltl planner
-            int replanning_stat;
-            my_blackboard_->get(std::string("replanning_request"), replanning_stat);
-            replanning_status.data = replanning_stat;
-            if(replanning_status.data != 0){
+//            if(current_ltl_state_ != previous_ltl_state_) {
 //                previous_ltl_state_ = current_ltl_state_;
 //                ltl_state_msg_.header.stamp = ros::Time::now();
 //                ltl_state_msg_.ts_state.states = current_ltl_state_;
 //                ltl_state_pub_.publish(ltl_state_msg_);
-                replanning_request_.publish(replanning_status);
-            }
+//            }
 
             ros::spinOnce();
             loop_rate.sleep();
@@ -230,8 +247,10 @@ public:
         // The xml changes go here
         auto action = msg.action_sequence;
         auto ts_state = msg.ts_state_sequence;
-        std::vector<std::vector<std::string>> desired_state_seq;
-        std::vector<std::string> action_sequence;
+        BT::LTLState_Sequence desired_state_seq;
+        BT::LTLAction_Sequence action_sequence;
+        BT::LTLState_Sequence executed_state_seq;
+        BT::LTLAction_Sequence executed_action_sequence;
         desired_state_seq.reserve(ts_state.size());
         action_sequence.reserve(action.size());
         for(const auto& state : ts_state){
@@ -242,6 +261,8 @@ public:
         }
         my_blackboard_->set("ltl_state_desired_sequence", desired_state_seq);
         my_blackboard_->set("action_sequence", action_sequence);
+        my_blackboard_->set("ltl_state_executed_sequence", executed_state_seq);
+        my_blackboard_->set("action_sequence_executed", executed_action_sequence);
         my_blackboard_->set("nav_goal", action_sequence[0]);
         my_blackboard_->set("num_cycles", action_sequence.size());
         my_blackboard_->set("replanning_request", 0);
@@ -289,6 +310,34 @@ public:
         my_blackboard_->set("locomotion_status", loco_status);
     }
 
+    bool callbackLTLTrace(ltl_automation_a1::LTLTraceRequest &req,
+                          ltl_automation_a1::LTLTraceResponse &res){
+        if(req.request == 1){
+            // Get the current action and TS state history
+            BT::LTLState_Sequence state_trace;
+            my_blackboard_->get(std::string("ltl_state_executed_sequence"), state_trace);
+            BT::LTLAction_Sequence  act_trace;
+            my_blackboard_->get(std::string("action_sequence_executed"), act_trace);
+
+            // Publish the current action and TS state history
+            ltl_trace_msg_.header.stamp = ros::Time::now();
+            ltl_trace_msg_.action_sequence = act_trace;
+            ltl_trace_msg_.ts_state_sequence.clear();
+            for(const auto& state_0 : state_trace){
+                ltl_automaton_msgs::TransitionSystemState s;
+                s.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
+                s.states = state_0;
+                ltl_trace_msg_.ts_state_sequence.push_back(s);
+            }
+            ltl_trace_pub_.publish(ltl_trace_msg_);
+            res.result = 0;
+        } else {
+            res.result = -1;
+            ROS_ERROR("Failed to request synchronization; check the ros service command; should be 1");
+        }
+        return true;
+    }
+
 
 
 
@@ -304,6 +353,7 @@ private:
     std::vector<std::string> current_ltl_state_;
     std::vector<std::string> previous_ltl_state_;
     ltl_automaton_msgs::TransitionSystemStateStamped  ltl_state_msg_;
+    ltl_automaton_msgs::LTLPlan ltl_trace_msg_;
     YAML::Node transition_system_;
     std::vector<std::string> loco_status;
 
@@ -311,6 +361,7 @@ private:
     ros::Subscriber a1_region_sub_;
     ros::Subscriber loco_status_sub_;
     ros::Publisher ltl_state_pub_;
+    ros::Publisher ltl_trace_pub_;
     ros::Publisher replanning_request_;
     std_msgs::Int8 replanning_status;
 

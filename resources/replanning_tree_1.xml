@@ -5,9 +5,9 @@
         <Repeat num_cycles="{num_cycles}">
             <Sequence>
                 <Fallback>
-                    <Action ID="LTLPreCheck" ltl_state_current="{ltl_state_current}" ltl_state_desired_sequence="{ltl_state_desired_sequence}"/>
+                    <Action ID="LTLPreCheck" ltl_state_current="{ltl_state_current}" ltl_state_desired_sequence="{ltl_state_desired_sequence}" ltl_state_executed_sequence="{ltl_state_executed_sequence}"/>
                     <ForceFailure>
-                        <Action ID="ReplanningRequestLevel2" replanning_request="{replanning_request}"/>
+                        <Action ID="ReplanningRequestLevel2" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="{ltl_state_executed_sequence}" replanning_request="{replanning_request}"/>
                     </ForceFailure>
                 </Fallback>
                 <ReactiveSequence>
@@ -24,17 +24,17 @@
                             </Fallback>
                         </RetryUntilSuccesful>
                         <ForceFailure>
-                            <Action ID="ReplanningRequestLevel3" replanning_request="{replanning_request}"/>
+                            <Action ID="ReplanningRequestLevel3" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="{ltl_state_executed_sequence}" replanning_request="{replanning_request}"/>
                         </ForceFailure>
                     </Fallback>
                     <Fallback>
                         <Action ID="MoveAction" action="{action}" move_base_finished="{move_base_finished}" move_base_idle="{move_base_idle}" nav_goal="{nav_goal}"/>
                         <ForceFailure>
-                            <Action ID="ReplanningRequestLevel3" replanning_request="{replanning_request}"/>
+                            <Action ID="ReplanningRequestLevel3" ltl_state_current="" ltl_state_executed_sequence="" replanning_request="{replanning_request}"/>
                         </ForceFailure>
                     </Fallback>
                 </ReactiveSequence>
-                <Action ID="UpdateLTL" action_sequence="{action_sequence}" ltl_state_desired_sequence="{ltl_state_desired_sequence}" nav_goal="{nav_goal}"/>
+                <Action ID="UpdateLTL" action_sequence="{action_sequence}" action_sequence_executed="{action_sequence_executed}" ltl_state_desired_sequence="{ltl_state_desired_sequence}" nav_goal="{nav_goal}"/>
             </Sequence>
         </Repeat>
     </BehaviorTree>
@@ -43,6 +43,7 @@
         <Action ID="LTLPreCheck">
             <input_port name="ltl_state_current"/>
             <input_port name="ltl_state_desired_sequence"/>
+            <inout_port name="ltl_state_executed_sequence"/>
         </Action>
         <Action ID="LocomotionStart">
             <input_port name="locomotion_status"/>
@@ -60,13 +61,18 @@
             <input_port name="locomotion_status"/>
         </Action>
         <Action ID="ReplanningRequestLevel2">
+            <input_port name="ltl_state_current"/>
+            <inout_port name="ltl_state_executed_sequence"/>
             <inout_port name="replanning_request"/>
         </Action>
         <Action ID="ReplanningRequestLevel3">
+            <input_port name="ltl_state_current"/>
+            <inout_port name="ltl_state_executed_sequence"/>
             <inout_port name="replanning_request"/>
         </Action>
         <Action ID="UpdateLTL">
             <inout_port name="action_sequence"/>
+            <inout_port name="action_sequence_executed"/>
             <inout_port name="ltl_state_desired_sequence"/>
             <output_port name="nav_goal"/>
         </Action>

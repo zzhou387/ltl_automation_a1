@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   behaviortree_cpp_v3
   nav_core
   quadruped_ctrl
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -61,11 +62,10 @@ find_package(yaml-cpp REQUIRED)
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+ add_service_files(
+   FILES
+   LTLTrace.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -75,10 +75,11 @@ find_package(yaml-cpp REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  ltl_automaton_msgs # Or other packages containing msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -112,7 +113,7 @@ find_package(yaml-cpp REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES ltl_automation_a1
-#  CATKIN_DEPENDS roscpp rospy std_msg
+  CATKIN_DEPENDS message_runtime message_generation roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -209,11 +210,11 @@ catkin_install_python(PROGRAMS
 # )
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+ install(DIRECTORY include/${PROJECT_NAME}/
+   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+   FILES_MATCHING PATTERN "*.h"
+   PATTERN ".svn" EXCLUDE
+ )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

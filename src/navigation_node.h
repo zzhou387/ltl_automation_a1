@@ -60,7 +60,8 @@ public:
     LTLPreCheck(const std::string& name, const NodeConfiguration& config) : ConditionNode(name, config){}
 
     static PortsList  providedPorts(){
-        return { InputPort<BT::LTLState>("ltl_state_current"), InputPort<BT::LTLState_Sequence>("ltl_state_desired_sequence")};
+        return { InputPort<BT::LTLState>("ltl_state_current"), InputPort<BT::LTLState_Sequence>("ltl_state_desired_sequence"),
+                 BidirectionalPort<BT::LTLState_Sequence>("ltl_state_executed_sequence")};
     }
 
     NodeStatus tick() override
@@ -69,7 +70,8 @@ public:
 //        auto int_1 = getInput<int>("in_arg1");
         auto current_state = getInput<BT::LTLState>("ltl_state_current");
         auto desired_state_seq = getInput<BT::LTLState_Sequence>("ltl_state_desired_sequence");
-        if(!desired_state_seq || !current_state) {
+        auto ltl_state_seq_executed = getInput<BT::LTLState_Sequence>("ltl_state_executed_sequence");
+        if(!desired_state_seq || !current_state || !ltl_state_seq_executed) {
             std::cout << name() << ": Fetch ltl state: " << "FAILED" << std::endl << std::endl;
             return NodeStatus::FAILURE;
         }
@@ -81,6 +83,11 @@ public:
                  std::cout << curr_state << " ";
             }
             std::cout << std::endl << std::endl;
+
+            // Push the current state to the state history
+            ltl_state_seq_executed.value().push_back(current_state.value());
+            setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+
             return NodeStatus::SUCCESS;
         } else {
             std::cout << name() << ": Check ltl state: " << "FAILED" << std::endl;
@@ -149,20 +156,25 @@ public:
     static PortsList  providedPorts(){
         return {BidirectionalPort<BT::LTLAction_Sequence>("action_sequence"),
                 BidirectionalPort<BT::LTLState_Sequence>("ltl_state_desired_sequence"),
+                BidirectionalPort<BT::LTLAction_Sequence>("action_sequence_executed"),
                 OutputPort<std::string>("nav_goal")};
     }
 
     NodeStatus tick() override {
         auto action_sequence = getInput<BT::LTLAction_Sequence>("action_sequence");
         auto ltl_state_seq = getInput<BT::LTLState_Sequence>("ltl_state_desired_sequence");
-        if(action_sequence && ltl_state_seq) {
+        auto action_sequence_executed = getInput<BT::LTLAction_Sequence>("action_sequence_executed");
+        if(action_sequence && ltl_state_seq && action_sequence_executed) {
             BT::LTLAction_Sequence act_seq = action_sequence.value();
             BT::LTLState_Sequence state_seq = ltl_state_seq.value();
+            BT::LTLAction_Sequence act_seq_executed = action_sequence_executed.value();
+            act_seq_executed.push_back(act_seq.front());
             act_seq.erase(act_seq.begin());
             state_seq.erase(state_seq.begin());
 
             setOutput<BT::LTLState_Sequence>("ltl_state_desired_sequence", state_seq);
             setOutput<BT::LTLAction_Sequence>("action_sequence", act_seq);
+            setOutput<BT::LTLAction_Sequence>("action_sequence_executed", act_seq_executed);
             setOutput<std::string>("nav_goal", act_seq[0]);
             std::cout << name() << ": Update ltl state: " << "SUCCESS" << std::endl << std::endl;
             return NodeStatus::SUCCESS;
@@ -179,14 +191,32 @@ public:
     ReplanningRequestLevel2(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
 
     static PortsList  providedPorts(){
-        return {BidirectionalPort<int>("replanning_request")};
+        return {BidirectionalPort<int>("replanning_request"),
+                BidirectionalPort<BT::LTLState_Sequence>("ltl_state_executed_sequence"),
+                InputPort<BT::LTLState>("ltl_state_current")};
     }
 
     NodeStatus tick() override {
         auto replanning_request = getInput<int>("replanning_request");
+        auto current_state = getInput<BT::LTLState>("ltl_state_current");
+        auto ltl_state_seq_executed = getInput<BT::LTLState_Sequence>("ltl_state_executed_sequence");
+        if(!current_state || !ltl_state_seq_executed) {
+            std::cout << name() << ": Fetch ltl state: " << "FAILED" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+
         if(replanning_request && replanning_request.value() == 0) {
             setOutput<int>("replanning_request", 2);
-            std::cout << name() << ": replanning request Level " << replanning_request.value() << " submitted: SUCCESS" << std::endl << std::endl;
+            std::cout << name() << ": replanning request Level 2" << " submitted: SUCCESS" << std::endl << std::endl;
+            if(ltl_state_seq_executed.value().empty()){
+                // Push the current state to the state history
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+            } else if(current_state.value() != ltl_state_seq_executed.value().back()){
+                // Push the current state to the state history
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+            }
             return NodeStatus::SUCCESS;
         } else {
             std::cout << name() << ": replanning request " << "FAILED" << std::endl << std::endl;
@@ -201,14 +231,27 @@ public:
     ReplanningRequestLevel3(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
 
     static PortsList  providedPorts(){
-        return {BidirectionalPort<int>("replanning_request")};
+        return {BidirectionalPort<int>("replanning_request"),
+                BidirectionalPort<BT::LTLState_Sequence>("ltl_state_executed_sequence"),
+                InputPort<BT::LTLState>("ltl_state_current")};
     }
 
     NodeStatus tick() override {
         auto replanning_request = getInput<int>("replanning_request");
+        auto current_state = getInput<BT::LTLState>("ltl_state_current");
+        auto ltl_state_seq_executed = getInput<BT::LTLState_Sequence>("ltl_state_executed_sequence");
         if(replanning_request && replanning_request.value() == 0) {
             setOutput<int>("replanning_request", 3);
-            std::cout << name() << ": replanning request Level " << replanning_request.value() << " submitted: SUCCESS" << std::endl << std::endl;
+            std::cout << name() << ": replanning request Level 3" << " submitted: SUCCESS" << std::endl << std::endl;
+            if(ltl_state_seq_executed.value().empty()){
+                // Push the current state to the state history
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+            } else if(current_state.value() != ltl_state_seq_executed.value().back()){
+                // Push the current state to the state history
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+            }
             return NodeStatus::SUCCESS;
         } else {
             std::cout << name() << ": replanning request " << "FAILED" << std::endl << std::endl;
