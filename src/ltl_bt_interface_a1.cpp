@@ -41,6 +41,7 @@ public:
     ~LTLA1Planner() = default;
     void init_params(){
         std::string package_name = "ltl_automation_a1";
+        std::string package_name_2 = "ltl_automaton_planner";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
         bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_1.xml");
@@ -49,7 +50,7 @@ public:
 
         // Get TS for param
         std::string ts_filepath;
-        ts_filepath = ros::package::getPath(package_name).append("/config/a1_ts.yaml");
+        ts_filepath = ros::package::getPath(package_name_2).append("/config/example_ts_dog.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
@@ -119,6 +120,7 @@ public:
         ltl_state_msg_.ts_state.states = current_ltl_state_;
         ltl_state_pub_.publish(ltl_state_msg_);
 
+        sleep(3); // must wait 3s, to get current region
         while(ros::ok()){
 
             if(is_first && replan){
