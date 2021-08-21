@@ -11,12 +11,16 @@
                     </ForceFailure>
                 </Fallback>
                 <Fallback>
-                    <Action ID="MoveAction" action="{action}" move_base_finished="{move_base_finished}" move_base_idle="{move_base_idle}" nav_goal="{nav_goal}"/>
+                    <Switch2 case_1="move" case_2="stay" variable="{bt_action_type}">
+                        <Action ID="MoveAction" bt_action_type="{bt_action_type}" current_action="{current_action}" goal_sent="{goal_sent}" move_base_finished="{move_base_finished}" move_base_idle="{move_base_idle}"/>
+                        <Action ID="StayAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
+                        <AlwaysFailure/>
+                    </Switch2>
                     <ForceFailure>
                         <Action ID="ReplanningRequestLevel3" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="{ltl_state_executed_sequence}" replanning_request="{replanning_request}"/>
                     </ForceFailure>
                 </Fallback>
-                <Action ID="UpdateLTL" action_sequence="{action_sequence}" action_sequence_executed="{action_sequence_executed}" ltl_state_desired_sequence="{ltl_state_desired_sequence}" nav_goal="{nav_goal}"/>
+                <Action ID="UpdateLTL" action_sequence="{action_sequence}" action_sequence_executed="{action_sequence_executed}" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_desired_sequence="{ltl_state_desired_sequence}"/>
             </Sequence>
         </Repeat>
     </BehaviorTree>
@@ -34,10 +38,11 @@
             <input_port name="locomotion_status"/>
         </Action>
         <Action ID="MoveAction">
-            <output_port name="action"/>
+            <input_port name="bt_action_type"/>
+            <input_port name="current_action"/>
+            <output_port name="goal_sent"/>
             <input_port name="move_base_finished"/>
             <input_port name="move_base_idle"/>
-            <input_port name="nav_goal"/>
         </Action>
         <Action ID="RecoveryStand">
             <input_port name="locomotion_status"/>
@@ -52,11 +57,17 @@
             <inout_port name="ltl_state_executed_sequence"/>
             <inout_port name="replanning_request"/>
         </Action>
+        <Action ID="StayAction">
+            <input_port name="bt_action_type"/>
+            <input_port name="current_action"/>
+            <inout_port name="ltl_state_current"/>
+        </Action>
         <Action ID="UpdateLTL">
             <inout_port name="action_sequence"/>
             <inout_port name="action_sequence_executed"/>
+            <output_port name="bt_action_type"/>
+            <output_port name="current_action"/>
             <inout_port name="ltl_state_desired_sequence"/>
-            <output_port name="nav_goal"/>
         </Action>
     </TreeNodesModel>
     <!-- ////////// -->

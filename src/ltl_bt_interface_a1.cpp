@@ -52,7 +52,9 @@ public:
         std::string ts_filepath;
         ts_filepath = ros::package::getPath(package_name_2).append("/config/example_ts_dog.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
+        std::cout << "debug 1" << std::endl;
         transition_system_ = YAML::LoadFile(ts_filepath);
+        std::cout << "debug 2" << std::endl;
 
         // Init ltl state message with TS
         ltl_state_msg_.ts_state.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
@@ -87,9 +89,18 @@ public:
     void run(){
         // set up the blackboard to cache the lower level codes running status
         ros::Rate loop_rate(1);
+
+        // additional argument for updating BT action types
+        NodeBuilder builder_ts =
+                [this](const std::string& name, const NodeConfiguration& config)
+                {
+                    return std::make_unique<BTNav::UpdateLTL>( name, config, transition_system_);
+        };
+
         factory_.registerNodeType<BTNav::MoveAction>("MoveAction");
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
-        factory_.registerNodeType<BTNav::UpdateLTL>("UpdateLTL");
+        factory_.registerBuilder<BTNav::UpdateLTL>("UpdateLTL", builder_ts);
+        factory_.registerNodeType<BTNav::StayAction>("StayAction");
         factory_.registerNodeType<BTNav::LocomotionStart>("LocomotionStart");
         factory_.registerNodeType<BTNav::LocomotionStatusCheck>("LocomotionStatusCheck");
         factory_.registerNodeType<BTNav::RecoveryStand>("RecoveryStand");
@@ -98,11 +109,12 @@ public:
 
         my_blackboard_->set("move_base_finished", false);
         my_blackboard_->set("move_base_idle", false);
-        my_blackboard_->set("nav_goal", "NONE");
+        my_blackboard_->set("current_action", "NONE");
         my_blackboard_->set("ltl_state_current", "NONE");
         my_blackboard_->set("ltl_state_desired_sequence", "NONE");
         my_blackboard_->set("ltl_state_executed_sequence", "NONE");
-        my_blackboard_->set("action", "NONE");
+        my_blackboard_->set("bt_action_type", "NONE");
+        my_blackboard_->set("goal_sent", false);
         my_blackboard_->set("action_sequence", "NONE");
         my_blackboard_->set("action_sequence_executed", "NONE");
         my_blackboard_->set("num_cycles", 1);
@@ -120,7 +132,7 @@ public:
         ltl_state_msg_.ts_state.states = current_ltl_state_;
         ltl_state_pub_.publish(ltl_state_msg_);
 
-        sleep(3); // must wait 3s, to get current region
+        sleep(5); // must wait 5s, to get current region
         while(ros::ok()){
 
             if(is_first && replan){
@@ -174,22 +186,24 @@ public:
             // bt
             if(status == NodeStatus::RUNNING) {
                 status = tree->tickRoot();
-                std::string action;
-                std::string nav_goal;
-                my_blackboard_->get(std::string("action"), action);
-                my_blackboard_->get(std::string("nav_goal"), nav_goal);
+                std::string bt_action_type;
+                std::string current_action;
+                bool goal_sent;
+                my_blackboard_->get(std::string("bt_action_type"), bt_action_type);
+                my_blackboard_->get(std::string("goal_sent"), goal_sent);
+                my_blackboard_->get(std::string("current_action"), current_action);
 
                 // output
                 YAML::Node action_dict;
                 bool sanity_check1 = false;
                 if (client_->isServerConnected()) {
-                    if (action == "MOVE_COMMAND") {
-                        if (nav_goal == "NONE") {
+                    if (bt_action_type == "move" && !goal_sent) {
+                        if (current_action == "NONE") {
                             ROS_ERROR("No goal is set");
                         } else {
                             for (YAML::const_iterator iter = transition_system_["actions"].begin();
                                  iter != transition_system_["actions"].end(); ++iter) {
-                                if (iter->first.as<std::string>() == nav_goal) {
+                                if (iter->first.as<std::string>() == current_action) {
                                     action_dict = transition_system_["actions"][iter->first.as<std::string>()];
                                     sanity_check1 = true;
                                     break;
@@ -200,10 +214,14 @@ public:
                                 ROS_ERROR("next_move_cmd not found in LTL A1 transition system");
                             }
 
-                            a1_action(action_dict);
+                            move_action(action_dict);
                         }
                     }
                 }
+                // Other actions; not needed at this moment; simply put into SynchroNode
+//                if (action == "")
+
+
                 // publish the replanning status and ltl current state back to the ltl planner
                 int replanning_stat;
                 my_blackboard_->get(std::string("replanning_request"), replanning_stat);
@@ -261,11 +279,31 @@ public:
         for(const auto& act : action){
             action_sequence.push_back(act);
         }
+
+        bool sanity_check1 = false;
+        YAML::Node action_dict;
+        std::string bt_action_type;
+        // Check the first action to be executed
+        for (YAML::const_iterator iter = transition_system_["actions"].begin();
+             iter != transition_system_["actions"].end(); ++iter) {
+            if (iter->first.as<std::string>() == action_sequence[0]) {
+                action_dict = transition_system_["actions"][iter->first.as<std::string>()];
+                bt_action_type = action_dict["type"].as<std::string>();
+                sanity_check1 = true;
+                break;
+            }
+        }
+
+        if (!sanity_check1) {
+            ROS_ERROR("The first action from LTL planner not found in mobile transition system");
+        }
+
         my_blackboard_->set("ltl_state_desired_sequence", desired_state_seq);
         my_blackboard_->set("action_sequence", action_sequence);
         my_blackboard_->set("ltl_state_executed_sequence", executed_state_seq);
         my_blackboard_->set("action_sequence_executed", executed_action_sequence);
-        my_blackboard_->set("nav_goal", action_sequence[0]);
+        my_blackboard_->set("current_action", action_sequence[0]);
+        my_blackboard_->set("bt_action_type", bt_action_type);
         my_blackboard_->set("num_cycles", action_sequence.size());
         my_blackboard_->set("replanning_request", 0);
 
@@ -276,7 +314,7 @@ public:
         replan = true;
     }
 
-    void a1_action(YAML::Node action_dic){
+    void move_action(YAML::Node action_dic){
         // Move command
         plan_index++;
         if(action_dic["type"].as<std::string>() == "move"){

@@ -9,6 +9,7 @@
 #include <string>
 #include "ros/ros.h"
 #include "quadruped_ctrl/QuadrupedCmd.h"
+#include <yaml-cpp/yaml.h>
 
 using namespace BT;
 
@@ -151,13 +152,16 @@ public:
 class UpdateLTL : public SyncActionNode
 {
 public:
-    UpdateLTL(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
+    UpdateLTL(const std::string& name, const NodeConfiguration& config, const YAML::Node& transition_system) :
+              SyncActionNode(name, config),
+              transition_system_(transition_system) {}
 
     static PortsList  providedPorts(){
         return {BidirectionalPort<BT::LTLAction_Sequence>("action_sequence"),
                 BidirectionalPort<BT::LTLState_Sequence>("ltl_state_desired_sequence"),
                 BidirectionalPort<BT::LTLAction_Sequence>("action_sequence_executed"),
-                OutputPort<std::string>("nav_goal")};
+                OutputPort<std::string>("current_action"),
+                OutputPort<std::string>("bt_action_type")};
     }
 
     NodeStatus tick() override {
@@ -175,7 +179,28 @@ public:
             setOutput<BT::LTLState_Sequence>("ltl_state_desired_sequence", state_seq);
             setOutput<BT::LTLAction_Sequence>("action_sequence", act_seq);
             setOutput<BT::LTLAction_Sequence>("action_sequence_executed", act_seq_executed);
-            setOutput<std::string>("nav_goal", act_seq[0]);
+            setOutput<std::string>("current_action", act_seq[0]);
+
+            bool sanity_check1 = false;
+            YAML::Node action_dict;
+            std::string bt_action_type;
+            // Check the first action to be executed
+            for (YAML::const_iterator iter = transition_system_["actions"].begin();
+                 iter != transition_system_["actions"].end(); ++iter) {
+                if (iter->first.as<std::string>() == act_seq[0]) {
+                    action_dict = transition_system_["actions"][iter->first.as<std::string>()];
+                    bt_action_type = action_dict["type"].as<std::string>();
+                    sanity_check1 = true;
+                    setOutput<std::string>("bt_action_type", bt_action_type);
+                    break;
+                }
+            }
+
+            if (!sanity_check1) {
+                std::cout << "The first action from LTL planner not found in transition system" << std::endl << std::endl;
+                return NodeStatus::FAILURE;
+            }
+
             std::cout << name() << ": Update ltl state: " << "SUCCESS" << std::endl << std::endl;
             return NodeStatus::SUCCESS;
         } else {
@@ -183,6 +208,9 @@ public:
             return NodeStatus::FAILURE;
         }
     }
+
+private:
+    YAML::Node transition_system_;
 };
 
 class ReplanningRequestLevel2 : public SyncActionNode
@@ -269,19 +297,26 @@ public:
     static PortsList providedPorts()
     {
         return { InputPort<bool>("move_base_finished"), InputPort<bool>("move_base_idle"),
-                 InputPort<std::string>("nav_goal"), OutputPort<std::string>("action") };
+                 InputPort<std::string>("current_action"), InputPort<std::string>("bt_action_type"),
+                 OutputPort<bool>("goal_sent")};
     }
 
     NodeStatus tick() override
     {
-        auto nav_goal = getInput<std::string>("nav_goal");
-        if(!nav_goal || nav_goal.value() == "NONE"){
+        auto current_action = getInput<std::string>("current_action");
+        auto bt_action_type = getInput<std::string>("bt_action_type");
+        if(!current_action || current_action.value() == "NONE" || !bt_action_type || bt_action_type.value() == "NONE"){
             return NodeStatus::FAILURE;
         }
 
-        setOutput<std::string>("action", "MOVE_COMMAND");
-        std::cout << name() << ": MOVE_COMMAND: " << nav_goal.value() << " Yield" << std::endl << std::endl;
-        setStatusRunningAndYield();
+        if(bt_action_type.value() == "move") {
+            std::cout << name() << ": MOVE_COMMAND: " << current_action.value() << " Yield" << std::endl << std::endl;
+            setOutput<bool>("goal_sent", false);
+            setStatusRunningAndYield();
+        }else{
+            std::cout << name() << ": Wrong action type; Check the switch node" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
 
         while (true)
         {
@@ -291,28 +326,64 @@ public:
             if (move_base_finished && move_base_finished.value())
             {
                 std::cout << name() << ": move_base is finidshed: SUCCESS" << std::endl << std::endl;
-                setOutput<std::string>("action", "NONE");
+                setOutput<bool>("goal_sent", true);
                 return BT::NodeStatus::SUCCESS;
             }
 
             if (move_base_idle && move_base_idle.value())
             {
                 std::cout << name() << ": move_base is idle: FAILURE" << std::endl << std::endl;
-                setOutput<std::string>("action", "NONE");
+                setOutput<bool>("goal_sent", true);
                 return BT::NodeStatus::FAILURE;
             }
 
-            setOutput<std::string>("action", "NONE");
+            setOutput<bool>("goal_sent", true);
             setStatusRunningAndYield();
         }
     }
 
     void halt() override
     {
-        std::cout << this->name() << getInput<std::string>("nav_goal").value() << ": halt" << std::endl;
+        std::cout << this->name() << getInput<std::string>("current_action").value() << ": halt" << std::endl;
         CoroActionNode::halt();
     }
 
+};
+
+class StayAction : public SyncActionNode
+{
+public:
+    StayAction(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config)
+    {}
+
+    static PortsList providedPorts()
+    {
+        return { InputPort<std::string>("current_action"), InputPort<std::string>("bt_action_type"),
+                 BidirectionalPort<BT::LTLState>("ltl_state_current")};
+    }
+
+    NodeStatus tick() override
+    {
+        auto current_action = getInput<std::string>("current_action");
+        auto bt_action_type = getInput<std::string>("bt_action_type");
+        auto current_state = getInput<BT::LTLState>("ltl_state_current");
+        if(!current_action || current_action.value() == "NONE" ||
+           !bt_action_type || bt_action_type.value() == "NONE" ||
+           !current_state){
+            return NodeStatus::FAILURE;
+        }
+
+        if(bt_action_type.value() == "stay") {
+            // Do nothing
+            std::cout << name() << ": STAY" << current_action.value() << " Yield" << std::endl << std::endl;
+            setOutput<BT::LTLState>("ltl_state_current", current_state.value());
+            return NodeStatus::SUCCESS;
+        }else{
+            std::cout << name() << ": Wrong action type; Check the switch node" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+
+    }
 };
 
 class RecoveryStand : public CoroActionNode

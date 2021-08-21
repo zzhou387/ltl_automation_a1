@@ -30,7 +30,7 @@
   </include>
 
   <!-- Run BT node -->
-  <node name="ltl_bt_interface_a1" pkg="ltl_automation_a1" type="ltl_bt_interface_a1" required="false" output="screen">
+  <node name="ltl_bt_interface_a1" pkg="ltl_automation_a1" type="ltl_bt_interface_a1" required="true" output="screen">
     <remap from="transition_system_textfile" to="transition_system_quadruped_textfile" />
     <remap from="/move_base" to="/$(arg agent_name)/move_base" />
     <remap from="current_region" to="/$(arg agent_name)/current_region" />
