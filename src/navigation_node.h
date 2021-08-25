@@ -213,6 +213,46 @@ private:
     YAML::Node transition_system_;
 };
 
+class ReplanningRequestLevel1 : public SyncActionNode
+{
+public:
+    ReplanningRequestLevel1(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config){}
+
+    static PortsList  providedPorts(){
+        return {BidirectionalPort<int>("replanning_request"),
+                BidirectionalPort<BT::LTLState_Sequence>("ltl_state_executed_sequence"),
+                InputPort<BT::LTLState>("ltl_state_current")};
+    }
+
+    NodeStatus tick() override {
+        auto replanning_request = getInput<int>("replanning_request");
+        auto current_state = getInput<BT::LTLState>("ltl_state_current");
+        auto ltl_state_seq_executed = getInput<BT::LTLState_Sequence>("ltl_state_executed_sequence");
+        if(!current_state || !ltl_state_seq_executed) {
+            std::cout << name() << ": Fetch ltl state: " << "FAILED" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+
+        if(replanning_request && replanning_request.value() == 0) {
+            setOutput<int>("replanning_request", 1);
+            std::cout << name() << ": replanning request Level 1" << " submitted: SUCCESS" << std::endl << std::endl;
+            if(ltl_state_seq_executed.value().empty()){
+                // Push the current state to the state history
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+            } else if(current_state.value() != ltl_state_seq_executed.value().back()){
+                // Push the current state to the state history
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+            }
+            return NodeStatus::SUCCESS;
+        } else {
+            std::cout << name() << ": replanning request " << "FAILED" << std::endl << std::endl;
+            return NodeStatus::FAILURE;
+        }
+    }
+};
+
 class ReplanningRequestLevel2 : public SyncActionNode
 {
 public:

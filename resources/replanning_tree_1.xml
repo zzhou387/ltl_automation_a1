@@ -24,7 +24,7 @@
                             </Fallback>
                         </RetryUntilSuccesful>
                         <ForceFailure>
-                            <Action ID="ReplanningRequestLevel3" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="{ltl_state_executed_sequence}" replanning_request="{replanning_request}"/>
+                            <Action ID="ReplanningRequestLevel1" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="{ltl_state_executed_sequence}" replanning_request="{replanning_request}"/>
                         </ForceFailure>
                     </Fallback>
                     <Fallback>
@@ -64,6 +64,11 @@
         </Action>
         <Action ID="RecoveryStand">
             <input_port name="locomotion_status"/>
+        </Action>
+        <Action ID="ReplanningRequestLevel1">
+            <input_port name="ltl_state_current"/>
+            <inout_port name="ltl_state_executed_sequence"/>
+            <inout_port name="replanning_request"/>
         </Action>
         <Action ID="ReplanningRequestLevel2">
             <input_port name="ltl_state_current"/>

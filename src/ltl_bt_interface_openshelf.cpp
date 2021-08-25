@@ -88,7 +88,7 @@ public:
 
     void run(){
         // set up the blackboard to cache the lower level codes running status
-        ros::Rate loop_rate(1);
+        ros::Rate loop_rate(10);
 
         // additional argument for updating BT action types
         NodeBuilder builder_ts =
@@ -101,6 +101,7 @@ public:
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
         factory_.registerBuilder<BTNav::UpdateLTL>("UpdateLTL", builder_ts);
         factory_.registerNodeType<BTNav::StayAction>("StayAction");
+        factory_.registerNodeType<BTNav::ReplanningRequestLevel1>("ReplanningRequestLevel1");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel2>("ReplanningRequestLevel2");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel3>("ReplanningRequestLevel3");
 
@@ -121,7 +122,7 @@ public:
 
 //        auto tree = std::make_unique<BT::Tree>();
         auto tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
-        auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+//        auto zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
         NodeStatus status = NodeStatus::RUNNING;
 
         // Send the initial LTL state
@@ -138,10 +139,10 @@ public:
                 is_first = false;
                 replan = false;
             } else if (!is_first && replan) {
-                zmq_publisher.reset();
+//                zmq_publisher.reset();
                 status = NodeStatus::RUNNING;
                 tree = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_filepath, my_blackboard_));
-                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
+//                zmq_publisher = std::make_unique<PublisherZMQ>(*tree);
                 ROS_WARN("BEHAVIOR TREE RELOADED");
                 replan = false;
             } else if (is_first && !replan){
