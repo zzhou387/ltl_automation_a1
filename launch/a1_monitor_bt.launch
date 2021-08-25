@@ -35,6 +35,8 @@
     <remap from="/move_base" to="/$(arg agent_name)/move_base" />
     <remap from="current_region" to="/$(arg agent_name)/current_region" />
     <remap from="/action_plan" to="$(arg plan_name)" />
+    <remap from="ltl_trace" to="ltl_trace_2"/>
+    <remap from="synchronization_service" to="synchronization_service_2"/>
   </node>-->
 
 
