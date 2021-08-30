@@ -88,7 +88,7 @@ public:
 
     void run(){
         // set up the blackboard to cache the lower level codes running status
-        ros::Rate loop_rate(10);
+        ros::Rate loop_rate(1);
 
         // additional argument for updating BT action types
         NodeBuilder builder_ts =

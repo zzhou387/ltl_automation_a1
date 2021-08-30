@@ -23,6 +23,10 @@
     <remap from="current_region" to="$(arg agent_name)/current_region" />
   </node>
 
+<!--   <node pkg="quadruped_ctrl" type="a1_servo" name="a1_servo" required="true" output="screen" > -->
+<!--     <remap from="/cmd_vel" to="/$(arg agent_name)/cmd_vel" /> -->
+<!--   </node> -->
+
   <!-- Run A1 navigation and simulated mocap -->
   <include file="$(find unitree_navigate)/launch/navigate_mocap.launch">
     <arg name="agent_name" value="$(arg agent_name)"/>
@@ -37,7 +41,8 @@
     <remap from="/action_plan" to="$(arg plan_name)" />
     <remap from="ltl_trace" to="/$(arg agent_name)/ltl_trace"/>
     <remap from="synchronization_service" to="/$(arg agent_name)/synchronization_service"/>
-  </node>-->
+    <remap from="replanning_request" to="/$(arg agent_name)/replanning_request"/>
+  </node>
 
 
 
