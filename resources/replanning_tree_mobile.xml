@@ -11,11 +11,12 @@
                     </ForceFailure>
                 </Fallback>
                 <Fallback>
-                    <Switch2 case_1="move" case_2="stay" variable="{bt_action_type}">
+                    <Switch3 case_1="move" case_2="stay" case_3="synchronized_transition" variable="{bt_action_type}">
                         <Action ID="MoveAction" bt_action_type="{bt_action_type}" current_action="{current_action}" goal_sent="{goal_sent}" move_base_finished="{move_base_finished}" move_base_idle="{move_base_idle}"/>
                         <Action ID="StayAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
+                        <Action ID="SynchronizedTransitionAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
                         <AlwaysFailure/>
-                    </Switch2>
+                    </Switch3>
                     <ForceFailure>
                         <Action ID="ReplanningRequestLevel3" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="{ltl_state_executed_sequence}" replanning_request="{replanning_request}"/>
                     </ForceFailure>
@@ -58,6 +59,11 @@
             <inout_port name="replanning_request"/>
         </Action>
         <Action ID="StayAction">
+            <input_port name="bt_action_type"/>
+            <input_port name="current_action"/>
+            <inout_port name="ltl_state_current"/>
+        </Action>
+        <Action ID="SynchronizedTransitionAction">
             <input_port name="bt_action_type"/>
             <input_port name="current_action"/>
             <inout_port name="ltl_state_current"/>

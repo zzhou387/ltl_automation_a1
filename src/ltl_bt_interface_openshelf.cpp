@@ -101,6 +101,7 @@ public:
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
         factory_.registerBuilder<BTNav::UpdateLTL>("UpdateLTL", builder_ts);
         factory_.registerNodeType<BTNav::StayAction>("StayAction");
+        factory_.registerNodeType<BTNav::SynchronizedTransitionAction>("SynchronizedTransitionAction");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel1>("ReplanningRequestLevel1");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel2>("ReplanningRequestLevel2");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel3>("ReplanningRequestLevel3");

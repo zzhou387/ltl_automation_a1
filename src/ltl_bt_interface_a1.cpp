@@ -101,6 +101,7 @@ public:
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
         factory_.registerBuilder<BTNav::UpdateLTL>("UpdateLTL", builder_ts);
         factory_.registerNodeType<BTNav::StayAction>("StayAction");
+        factory_.registerNodeType<BTNav::SynchronizedTransitionAction>("SynchronizedTransitionAction");
         factory_.registerNodeType<BTNav::LocomotionStart>("LocomotionStart");
         factory_.registerNodeType<BTNav::LocomotionStatusCheck>("LocomotionStatusCheck");
         factory_.registerNodeType<BTNav::RecoveryStand>("RecoveryStand");
