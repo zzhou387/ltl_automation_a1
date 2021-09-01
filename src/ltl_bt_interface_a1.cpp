@@ -52,9 +52,7 @@ public:
         std::string ts_filepath;
         ts_filepath = ros::package::getPath(package_name_2).append("/config/example_ts_dog.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
-        std::cout << "debug 1" << std::endl;
         transition_system_ = YAML::LoadFile(ts_filepath);
-        std::cout << "debug 2" << std::endl;
 
         // Init ltl state message with TS
         ltl_state_msg_.ts_state.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
@@ -247,6 +245,10 @@ public:
                     }
                     ltl_trace_pub_.publish(ltl_trace_msg_);
                     replanning_request_.publish(replanning_status);
+                }
+            } else if (status == NodeStatus::FAILURE){
+                if(client_->isServerConnected()){
+                    client_->cancelGoal();
                 }
             }
 
