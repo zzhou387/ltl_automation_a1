@@ -44,13 +44,13 @@ public:
         std::string package_name_2 = "ltl_automaton_planner";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_1.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_quadruped.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
         // Get TS for param
         std::string ts_filepath;
-        ts_filepath = ros::package::getPath(package_name_2).append("/config/example_ts_dog.yaml");
+        ts_filepath = ros::package::getPath(package_name_2).append("/config/example_ts_quadruped.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
@@ -75,7 +75,8 @@ public:
             auto dimension = transition_system_["state_dim"].as<std::vector<std::string>>()[i];
             if(dimension == "2d_pose_region"){
                 a1_region_sub_ = nh_.subscribe("current_region", 100, &LTLA1Planner::region_state_callback, this);
-            } else if (dimension == "a1_load") {
+            } else if (dimension == "A1_load") {
+                // always initialize as unloaded for now
                 current_ltl_state_[i] = "unloaded";
             } else {
                 std::cout <<"state type " << dimension << " is not supported by LTL A1" << std::endl;
@@ -97,9 +98,12 @@ public:
 
         factory_.registerNodeType<BTNav::MoveAction>("MoveAction");
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
+        factory_.registerNodeType<BTNav::ReactiveLTLStateCheck>("ReactiveLTLStateCheck");
         factory_.registerBuilder<BTNav::UpdateLTL>("UpdateLTL", builder_ts);
         factory_.registerNodeType<BTNav::StayAction>("StayAction");
         factory_.registerNodeType<BTNav::SynchronizedTransitionAction>("SynchronizedTransitionAction");
+        factory_.registerNodeType<BTNav::PickAction>("PickAction");
+        factory_.registerNodeType<BTNav::DropAction>("DropAction");
         factory_.registerNodeType<BTNav::LocomotionStart>("LocomotionStart");
         factory_.registerNodeType<BTNav::LocomotionStatusCheck>("LocomotionStatusCheck");
         factory_.registerNodeType<BTNav::RecoveryStand>("RecoveryStand");

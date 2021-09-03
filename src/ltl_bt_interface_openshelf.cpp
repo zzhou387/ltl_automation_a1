@@ -43,13 +43,13 @@ public:
         std::string package_name_2 = "ltl_automaton_planner";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_mobile.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_delivery.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
         // Get TS for param
         std::string ts_filepath;
-        ts_filepath = ros::package::getPath(package_name_2).append("/config/example_ts.yaml");
+        ts_filepath = ros::package::getPath(package_name_2).append("/config/example_ts_delivery.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
@@ -74,10 +74,11 @@ public:
             auto dimension = transition_system_["state_dim"].as<std::vector<std::string>>()[i];
             if(dimension == "2d_pose_region"){
                 a1_region_sub_ = nh_.subscribe("current_region", 100, &LTLA1Planner::region_state_callback, this);
-            } else if (dimension == "a1_load") {
+            } else if (dimension == "DR_load") {
+                // always initialize as unloaded for now
                 current_ltl_state_[i] = "unloaded";
             } else {
-                std::cout <<"state type " << dimension << " is not supported by LTL A1" << std::endl;
+                std::cout <<"state type " << dimension << " is not supported by quadruped TS" << std::endl;
             }
         }
 
@@ -96,9 +97,12 @@ public:
 
         factory_.registerNodeType<BTNav::MoveAction>("MoveAction");
         factory_.registerNodeType<BTNav::LTLPreCheck>("LTLPreCheck");
+        factory_.registerNodeType<BTNav::ReactiveLTLStateCheck>("ReactiveLTLStateCheck");
         factory_.registerBuilder<BTNav::UpdateLTL>("UpdateLTL", builder_ts);
         factory_.registerNodeType<BTNav::StayAction>("StayAction");
         factory_.registerNodeType<BTNav::SynchronizedTransitionAction>("SynchronizedTransitionAction");
+        factory_.registerNodeType<BTNav::PickAction>("PickAction");
+        factory_.registerNodeType<BTNav::DropAction>("DropAction");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel1>("ReplanningRequestLevel1");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel2>("ReplanningRequestLevel2");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel3>("ReplanningRequestLevel3");
