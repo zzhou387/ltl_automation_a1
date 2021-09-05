@@ -19,6 +19,7 @@
 #include <ros/package.h>
 #include "quadruped_ctrl/locomotion_status.h"
 #include "ltl_automation_a1/LTLTrace.h"
+#include "ltl_automation_a1/LTLStateLoadDisturb.h"
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> Client;
 
@@ -34,6 +35,7 @@ public:
         replanning_request_ = nh_.advertise<std_msgs::Int8>("replanning_request", 1);
         ltl_trace_pub_ = nh_.advertise<ltl_automaton_msgs::LTLPlan>("ltl_trace", 10, true);
         ros::ServiceServer service = nh_.advertiseService("synchronization_service", &LTLA1Planner::callbackLTLTrace, this);
+        ros::ServiceServer service_load = nh_.advertiseService("load_disturbance", &LTLA1Planner::callbackLTLStateLoadDisturb, this);
         init_params();
         create_monitors();
         run();
@@ -250,11 +252,12 @@ public:
                     ltl_trace_pub_.publish(ltl_trace_msg_);
                     replanning_request_.publish(replanning_status);
                 }
-            } else if (status == NodeStatus::FAILURE){
-                if(client_->isServerConnected()){
-                    client_->cancelGoal();
-                }
             }
+//            else if (status == NodeStatus::FAILURE){
+//                if(client_->isServerConnected()){
+//                    client_->cancelGoal();
+//                }
+//            }
 
             // Publish ltl current state back to the ltl planner
 //            if(current_ltl_state_ != previous_ltl_state_) {
@@ -382,6 +385,21 @@ public:
         } else {
             res.result = -1;
             ROS_ERROR("Failed to request synchronization; check the ros service command; should be 1");
+        }
+        return true;
+    }
+
+    bool callbackLTLStateLoadDisturb(ltl_automation_a1::LTLStateLoadDisturbRequest &req,
+                                 ltl_automation_a1::LTLStateLoadDisturbResponse &res){
+        if(req.request == 1){
+            current_ltl_state_[1] = "unloaded";
+            ROS_WARN("Load state changed to unloaded");
+//            std::cout << current_ltl_state_[1] << std::endl;
+            my_blackboard_->set("ltl_state_current", current_ltl_state_);
+            res.result = 0;
+        } else {
+            res.result = -1;
+            ROS_ERROR("Failed to add disturbance for load state; check the ros service command; should be 1");
         }
         return true;
     }

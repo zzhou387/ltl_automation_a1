@@ -65,6 +65,7 @@ find_package(yaml-cpp REQUIRED)
  add_service_files(
    FILES
    LTLTrace.srv
+   LTLStateLoadDisturb.srv
  )
 
 ## Generate actions in the 'action' folder

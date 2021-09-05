@@ -23,7 +23,7 @@
                             <Action ID="StayAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
                             <Action ID="SynchronizedTransitionAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
                             <Action ID="PickAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
-                            <Action ID="DropAction" bt_action_type="{bt_action_type}" currrent_state="{current_action}" ltl_state_current="{ltl_state_current}"/>
+                            <Action ID="DropAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
                             <AlwaysFailure/>
                         </Switch5>
                         <ForceFailure>
@@ -39,7 +39,7 @@
     <TreeNodesModel>
         <Action ID="DropAction">
             <input_port name="bt_action_type"/>
-            <input_port name="currrent_state"/>
+            <input_port name="current_action"/>
             <inout_port name="ltl_state_current"/>
         </Action>
         <Action ID="GuideAction">
