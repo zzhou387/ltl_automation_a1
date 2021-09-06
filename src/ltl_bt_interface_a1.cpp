@@ -198,6 +198,7 @@ public:
                 my_blackboard_->get(std::string("bt_action_type"), bt_action_type);
                 my_blackboard_->get(std::string("goal_sent"), goal_sent);
                 my_blackboard_->get(std::string("current_action"), current_action);
+                my_blackboard_->get(std::string("ltl_state_current"), current_ltl_state_);
 
                 // output
                 YAML::Node action_dict;
@@ -354,6 +355,7 @@ public:
     void region_state_callback(const std_msgs::String& msg){
         current_ltl_state_[0] = msg.data;
         std::cout << current_ltl_state_[0] << std::endl;
+        std::cout << current_ltl_state_[1] << std::endl;
         my_blackboard_->set("ltl_state_current", current_ltl_state_);
     }
 
