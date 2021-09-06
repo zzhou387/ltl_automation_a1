@@ -245,11 +245,11 @@ public:
                     replanning_request_.publish(replanning_status);
                 }
             }
-//            else if (status == NodeStatus::FAILURE){
-//                if(client_->isServerConnected()){
-//                    client_->cancelGoal();
-//                }
-//            }
+            else if (status == NodeStatus::FAILURE){
+                if(client_->isServerConnected()){
+                    client_->cancelGoal();
+                }
+            }
 
             // Publish ltl current state back to the ltl planner
 //            if(current_ltl_state_ != previous_ltl_state_) {

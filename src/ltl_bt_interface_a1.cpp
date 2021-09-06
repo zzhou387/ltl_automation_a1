@@ -207,6 +207,7 @@ public:
                         if (current_action == "NONE") {
                             ROS_ERROR("No goal is set");
                         } else {
+                            ROS_WARN("Set goal here");
                             for (YAML::const_iterator iter = transition_system_["actions"].begin();
                                  iter != transition_system_["actions"].end(); ++iter) {
                                 if (iter->first.as<std::string>() == current_action) {
@@ -253,11 +254,12 @@ public:
                     replanning_request_.publish(replanning_status);
                 }
             }
-//            else if (status == NodeStatus::FAILURE){
-//                if(client_->isServerConnected()){
-//                    client_->cancelGoal();
-//                }
-//            }
+            else if (status == NodeStatus::FAILURE){
+                if(client_->isServerConnected()){
+                    client_->cancelGoal();
+                    ROS_WARN("Goal cancelled");
+                }
+            }
 
             // Publish ltl current state back to the ltl planner
 //            if(current_ltl_state_ != previous_ltl_state_) {
