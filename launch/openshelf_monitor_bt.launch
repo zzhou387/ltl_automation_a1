@@ -27,6 +27,7 @@
   <!-- Run Openshelf navigation -->
   <include file="$(find openshelf7_navigation)/launch/navigate_mocap.launch">
     <arg name="agent_name" value="$(arg agent_name)" />
+    <arg name="world_name" value="hospital_world"/>
     <arg name="run_mocap" value="false"/>
     <arg name="launch_map" value="false"/>
   </include>

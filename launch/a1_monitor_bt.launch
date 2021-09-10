@@ -33,6 +33,7 @@
   <!-- Run A1 navigation and simulated mocap -->
   <include file="$(find unitree_navigate)/launch/navigate_mocap.launch">
     <arg name="agent_name" value="$(arg agent_name)"/>
+    <arg name="world_name" value="hospital_world"/>
     <arg name="run_mocap" value="true"/>
   </include>
 
