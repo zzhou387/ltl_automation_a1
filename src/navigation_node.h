@@ -169,7 +169,7 @@ public:
             return NodeStatus::FAILURE;
         }
 
-        // check the second state which is reactive LTL state such as loaded/unloaded
+        // check the second state which is reactive LTL state such as loaded/standby
         auto desired_reactive_state = desired_state_seq.value()[0][1];
         auto current_reactive_state = current_state.value()[1];
         if(desired_reactive_state == current_reactive_state){
@@ -534,7 +534,7 @@ public:
             // Do nothing
             std::cout << name() << ": Pick action" << current_action.value() << " Yield" << std::endl << std::endl;
             auto updated_state = current_state.value();
-            if(updated_state[1] != "unloaded"){
+            if(updated_state[1] != "standby"){
                 std::cout << "Current load state ERROR; shouldn't happen" << std::endl;
                 return NodeStatus::FAILURE;
             }
@@ -580,7 +580,7 @@ public:
                 std::cout << "Current load state ERROR; shouldn't happen" << std::endl;
                 return NodeStatus::FAILURE;
             }
-            updated_state[1] = "unloaded";
+            updated_state[1] = "standby";
             setOutput<BT::LTLState>("ltl_state_current", updated_state);
             return NodeStatus::SUCCESS;
         }else{
@@ -614,15 +614,15 @@ public:
             return NodeStatus::FAILURE;
         }
 
-        if(bt_action_type.value() == "guide") {
+        if(bt_action_type.value() == "start_training") {
             // Do nothing
             std::cout << name() << ": Start guide mode" << current_action.value() << " Yield" << std::endl << std::endl;
             auto updated_state = current_state.value();
-            if(updated_state[1] != "normal"){
+            if(updated_state[1] != "standby"){
                 std::cout << "Current environment-independent robot state ERROR; shouldn't happen" << std::endl;
                 return NodeStatus::FAILURE;
             }
-            updated_state[1] = "guide";
+            updated_state[1] = "training";
             setOutput<BT::LTLState>("ltl_state_current", updated_state);
             return NodeStatus::SUCCESS;
         }else{
@@ -656,15 +656,15 @@ public:
             return NodeStatus::FAILURE;
         }
 
-        if(bt_action_type.value() == "normal") {
+        if(bt_action_type.value() == "terminate_training") {
             // Do nothing
             std::cout << name() << ": Start normal mode" << current_action.value() << " Yield" << std::endl << std::endl;
             auto updated_state = current_state.value();
-//            if(updated_state[1] != ""){
-//                std::cout << "Current environment-independent robot state ERROR; shouldn't happen" << std::endl;
-//                return NodeStatus::FAILURE;
-//            }
-            updated_state[1] = "normal";
+            if(updated_state[1] != "training"){
+                std::cout << "Current environment-independent robot state ERROR; shouldn't happen" << std::endl;
+                return NodeStatus::FAILURE;
+            }
+            updated_state[1] = "standby";
             setOutput<BT::LTLState>("ltl_state_current", updated_state);
             return NodeStatus::SUCCESS;
         }else{

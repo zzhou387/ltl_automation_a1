@@ -18,14 +18,13 @@
                         </ForceFailure>
                     </Fallback>
                     <Fallback>
-                        <Switch5 case_1="move" case_2="stay" case_3="synchronized_transition" case_4="pick" case_5="drop" variable="{bt_action_type}">
+                        <Switch4 case_1="move" case_2="stay" case_3="pick" case_4="drop" variable="{bt_action_type}">
                             <Action ID="MoveAction" bt_action_type="{bt_action_type}" current_action="{current_action}" goal_sent="{goal_sent}" move_base_finished="{move_base_finished}" move_base_idle="{move_base_idle}"/>
                             <Action ID="StayAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
-                            <Action ID="SynchronizedTransitionAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
                             <Action ID="PickAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
                             <Action ID="DropAction" bt_action_type="{bt_action_type}" current_action="{current_action}" ltl_state_current="{ltl_state_current}"/>
                             <AlwaysFailure/>
-                        </Switch5>
+                        </Switch4>
                         <ForceFailure>
                             <Action ID="ReplanningRequestLevel3" ltl_state_current="{ltl_state_current}" ltl_state_executed_sequence="{ltl_state_executed_sequence}" replanning_request="{replanning_request}"/>
                         </ForceFailure>

@@ -157,6 +157,12 @@ target_link_libraries(ltl_bt_interface_openshelf
   ${catkin_LIBRARIES} yaml-cpp
 )
 
+add_executable(ltl_bt_interface_wassi src/ltl_bt_interface_wassi.cpp)
+
+target_link_libraries(ltl_bt_interface_wassi
+  ${catkin_LIBRARIES} yaml-cpp
+)
+
 add_executable(yaml_test src/yaml_test.cpp)
 
 target_link_libraries(yaml_test

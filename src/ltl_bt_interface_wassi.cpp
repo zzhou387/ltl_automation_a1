@@ -45,13 +45,13 @@ public:
         std::string package_name_2 = "ltl_automaton_planner";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_delivery.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_wassi.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
         // Get TS for param
         std::string ts_filepath;
-        ts_filepath = ros::package::getPath(package_name_2).append("/config/ts_delivery.yaml");
+        ts_filepath = ros::package::getPath(package_name_2).append("/config/ts_wassi.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
@@ -76,11 +76,11 @@ public:
             auto dimension = transition_system_["state_dim"].as<std::vector<std::string>>()[i];
             if(dimension == "2d_pose_region"){
                 a1_region_sub_ = nh_.subscribe("current_region", 100, &LTLA1Planner::region_state_callback, this);
-            } else if (dimension == "DR_load") {
+            } else if (dimension == "Wassi_state") {
                 // always initialize as unloaded for now
                 current_ltl_state_[i] = "standby";
             } else {
-                std::cout <<"state type " << dimension << " is not supported by DR TS" << std::endl;
+                std::cout <<"state type " << dimension << " is not supported by Wassi TS" << std::endl;
             }
         }
 
@@ -105,6 +105,8 @@ public:
         factory_.registerNodeType<BTNav::SynchronizedTransitionAction>("SynchronizedTransitionAction");
         factory_.registerNodeType<BTNav::PickAction>("PickAction");
         factory_.registerNodeType<BTNav::DropAction>("DropAction");
+        factory_.registerNodeType<BTNav::GuideAction>("GuideAction");
+        factory_.registerNodeType<BTNav::BackNormalAction>("BackNormalAction");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel1>("ReplanningRequestLevel1");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel2>("ReplanningRequestLevel2");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel3>("ReplanningRequestLevel3");
@@ -380,8 +382,8 @@ public:
     bool callbackLTLStateLoadDisturb(ltl_automation_a1::LTLStateLoadDisturbRequest &req,
                                      ltl_automation_a1::LTLStateLoadDisturbResponse &res){
         if(req.request == 1){
-            current_ltl_state_[1] = "standby";
-            ROS_WARN("Load state changed to standby");
+            current_ltl_state_[1] = "unloaded";
+            ROS_WARN("Load state changed to unloaded");
 //            std::cout << current_ltl_state_[1] << std::endl;
             my_blackboard_->set("ltl_state_current", current_ltl_state_);
             res.result = 0;
@@ -424,7 +426,7 @@ private:
 };
 
 int main(int argc, char** argv){
-    ros::init(argc, argv, "openshelf_ltl_bt");
+    ros::init(argc, argv, "wassi_ltl_bt");
     LTLA1Planner runner;
     ros::spin();
     return 0;
