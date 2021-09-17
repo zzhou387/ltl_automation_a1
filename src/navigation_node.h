@@ -800,6 +800,87 @@ public:
     }
 
 };
+
+class FakeDetectionLevel1 : public SyncActionNode {
+public:
+    FakeDetectionLevel1(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config)
+    {}
+
+    static PortsList providedPorts()
+    {
+        return { InputPort<std::string>("replanning_fake_input") };
+    }
+
+    NodeStatus tick() override
+    {
+        auto fake_input = getInput<int>("replanning_fake_input");
+        if(!fake_input){
+            return NodeStatus::FAILURE;
+        }
+
+        if(fake_input.value() == 1) {
+            std::cout << "Received fake replanning request level 1 from user" << std::endl;
+            return NodeStatus::FAILURE;
+        }else{
+            return NodeStatus::SUCCESS;
+        }
+
+    }
+};
+
+class FakeDetectionLevel2 : public SyncActionNode {
+public:
+    FakeDetectionLevel2(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config)
+    {}
+
+    static PortsList providedPorts()
+    {
+        return { InputPort<std::string>("replanning_fake_input") };
+    }
+
+    NodeStatus tick() override
+    {
+        auto fake_input = getInput<int>("replanning_fake_input");
+        if(!fake_input){
+            return NodeStatus::FAILURE;
+        }
+
+        if(fake_input.value() == 2) {
+            std::cout << "Received fake replanning request level 2 from user" << std::endl;
+            return NodeStatus::FAILURE;
+        }else{
+            return NodeStatus::SUCCESS;
+        }
+
+    }
+};
+
+class FakeDetectionLevel3 : public SyncActionNode {
+public:
+    FakeDetectionLevel3(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config)
+    {}
+
+    static PortsList providedPorts()
+    {
+        return { InputPort<std::string>("replanning_fake_input") };
+    }
+
+    NodeStatus tick() override
+    {
+        auto fake_input = getInput<int>("replanning_fake_input");
+        if(!fake_input){
+            return NodeStatus::FAILURE;
+        }
+
+        if(fake_input.value() == 3) {
+            std::cout << "Received fake replanning request level 3 from user" << std::endl;
+            return NodeStatus::FAILURE;
+        }else{
+            return NodeStatus::SUCCESS;
+        }
+
+    }
+};
 } // end namespace BTNav
 
 #endif //LTL_AUTOMATION_A1_NAVIGATION_NODE_H

@@ -41,7 +41,7 @@
     <remap from="ltl_trace" to="/$(arg agent_name)/ltl_trace"/>
     <remap from="synchronization_service" to="/$(arg agent_name)/synchronization_service"/>
     <remap from="replanning_request" to="/$(arg agent_name)/replanning_request"/>
-    <remap from="load_disturbance" to="/$(arg agent_name)/load_disturbance"/>
+    <remap from="training_disturbance" to="/$(arg agent_name)/training_disturbance"/>
   </node>
 
 </launch>

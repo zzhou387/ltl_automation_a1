@@ -66,6 +66,7 @@ find_package(yaml-cpp REQUIRED)
    FILES
    LTLTrace.srv
    LTLStateLoadDisturb.srv
+   LTLFakeInput.srv
  )
 
 ## Generate actions in the 'action' folder

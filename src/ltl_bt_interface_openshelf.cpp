@@ -20,6 +20,7 @@
 #include "quadruped_ctrl/locomotion_status.h"
 #include "ltl_automation_a1/LTLTrace.h"
 #include "ltl_automation_a1/LTLStateLoadDisturb.h"
+#include "ltl_automation_a1/LTLFakeInput.h"
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> Client;
 
@@ -35,6 +36,7 @@ public:
         ltl_trace_pub_ = nh_.advertise<ltl_automaton_msgs::LTLPlan>("ltl_trace", 10, true);
         ros::ServiceServer service = nh_.advertiseService("synchronization_service", &LTLA1Planner::callbackLTLTrace, this);
         ros::ServiceServer service_load = nh_.advertiseService("load_disturbance", &LTLA1Planner::callbackLTLStateLoadDisturb, this);
+        ros::ServiceServer service_fake_input = nh_.advertiseService("fake_input", &LTLA1Planner::callbackLTLFakeInput, this);
         init_params();
         create_monitors();
         run();
@@ -45,7 +47,7 @@ public:
         std::string package_name_2 = "ltl_automaton_planner";
         // Get default tree from param
         auto aaa = ros::package::getPath(package_name);
-        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_delivery.xml");
+        bt_filepath = ros::package::getPath(package_name).append("/resources/replanning_tree_delivery_fake.xml");
 //        nh_.getParam("bt_filepath", bt_filepath);
         ROS_INFO("tree file: %s\n", bt_filepath.c_str());
 
@@ -108,6 +110,9 @@ public:
         factory_.registerNodeType<BTNav::ReplanningRequestLevel1>("ReplanningRequestLevel1");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel2>("ReplanningRequestLevel2");
         factory_.registerNodeType<BTNav::ReplanningRequestLevel3>("ReplanningRequestLevel3");
+        factory_.registerNodeType<BTNav::FakeDetectionLevel1>("FakeDetectionLevel1");
+        factory_.registerNodeType<BTNav::FakeDetectionLevel2>("FakeDetectionLevel2");
+        factory_.registerNodeType<BTNav::FakeDetectionLevel3>("FakeDetectionLevel3");
 
         my_blackboard_->set("move_base_finished", false);
         my_blackboard_->set("move_base_idle", false);
@@ -122,6 +127,7 @@ public:
         my_blackboard_->set("num_cycles", 1);
 //        my_blackboard_->set("locomotion_status", "NONE");
         my_blackboard_->set("replanning_request", 0);
+        my_blackboard_->set("replanning_fake_input", 0);
         my_blackboard_->debugMessage();
 
 //        auto tree = std::make_unique<BT::Tree>();
@@ -195,6 +201,7 @@ public:
                 my_blackboard_->get(std::string("goal_sent"), goal_sent);
                 my_blackboard_->get(std::string("current_action"), current_action);
                 my_blackboard_->get(std::string("ltl_state_current"), current_ltl_state_);
+                my_blackboard_->get(std::string("replanning_fake_input"), fake_input_);
 
                 // output
                 YAML::Node action_dict;
@@ -310,6 +317,7 @@ public:
         my_blackboard_->set("bt_action_type", bt_action_type);
         my_blackboard_->set("num_cycles", action_sequence.size());
         my_blackboard_->set("replanning_request", 0);
+        my_blackboard_->set("replanning_fake_input", 0);
 
         // TODO: Add if statement based on the current tree status
         if(replan){
@@ -392,6 +400,21 @@ public:
         return true;
     }
 
+    bool callbackLTLFakeInput(ltl_automation_a1::LTLFakeInput::Request &req,
+                              ltl_automation_a1::LTLFakeInput::Response &res){
+
+        if(req.request < 4){
+            fake_input_ = int(req.request);
+            ROS_WARN("Apply fake disturbance");
+            my_blackboard_->set("replanning_fake_input", fake_input_);
+            res.result = 0;
+        } else {
+            res.result = -1;
+            ROS_ERROR("Failed to add fake input; check the ros service command; should be 0-3");
+        }
+        return true;
+    }
+
 
 
 
@@ -416,6 +439,7 @@ private:
     ros::Publisher ltl_trace_pub_;
     ros::Publisher replanning_request_;
     std_msgs::Int8 replanning_status;
+    int fake_input_;
 
     bool is_first;
     bool replan;
