@@ -5,6 +5,7 @@
   <arg name="plan_name" default="/action_plan_1"/>
   <arg name="pose_x" default="2.0" />
   <arg name="pose_y" default="0.0" />
+  <arg name="init_yaw" default="3.14" />
 
   <!-- Load parameters -->
   <!-- Agent name -->
@@ -15,6 +16,7 @@
     <arg name="robot_name" value="$(arg agent_name)" />
     <arg name="pose_x" value="$(arg pose_x)" />
     <arg name="pose_y" value="$(arg pose_y)" />
+    <arg name="init_yaw" value="$(arg init_yaw)" />
   </include>
 
   <!-- Run mobile robot LTL node with the 2D pose region monitor-->
@@ -27,7 +29,7 @@
   <!-- Run Openshelf navigation -->
   <include file="$(find dr7_navigation)/launch/navigate_mocap.launch">
     <arg name="agent_name" value="$(arg agent_name)" />
-    <arg name="world_name" value="hospital_world"/>
+    <arg name="world_name" value="hospital_map"/>
     <arg name="run_mocap" value="false"/>
     <arg name="launch_map" value="false"/>
   </include>
@@ -42,6 +44,7 @@
     <remap from="synchronization_service" to="/$(arg agent_name)/synchronization_service"/>
     <remap from="replanning_request" to="/$(arg agent_name)/replanning_request"/>
     <remap from="load_disturbance" to="/$(arg agent_name)/load_disturbance"/>
+    <remap from="fake_input" to="/$(arg agent_name)/fake_input"/>
   </node>
 
 </launch>

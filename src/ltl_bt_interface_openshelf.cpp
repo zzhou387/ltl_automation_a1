@@ -294,14 +294,18 @@ public:
         bool sanity_check1 = false;
         YAML::Node action_dict;
         std::string bt_action_type;
+        std::string current_action;
         // Check the first action to be executed
-        for (YAML::const_iterator iter = transition_system_["actions"].begin();
-            iter != transition_system_["actions"].end(); ++iter) {
-            if (iter->first.as<std::string>() == action_sequence[0]) {
-                action_dict = transition_system_["actions"][iter->first.as<std::string>()];
-                bt_action_type = action_dict["type"].as<std::string>();
-                sanity_check1 = true;
-                break;
+        if(!action_sequence.empty()){
+            current_action = action_sequence[0];
+            for (YAML::const_iterator iter = transition_system_["actions"].begin();
+                 iter != transition_system_["actions"].end(); ++iter) {
+                if (iter->first.as<std::string>() == current_action) {
+                    action_dict = transition_system_["actions"][iter->first.as<std::string>()];
+                    bt_action_type = action_dict["type"].as<std::string>();
+                    sanity_check1 = true;
+                    break;
+                }
             }
         }
 
@@ -313,7 +317,7 @@ public:
         my_blackboard_->set("action_sequence", action_sequence);
         my_blackboard_->set("ltl_state_executed_sequence", executed_state_seq);
         my_blackboard_->set("action_sequence_executed", executed_action_sequence);
-        my_blackboard_->set("current_action", action_sequence[0]);
+        my_blackboard_->set("current_action", current_action);
         my_blackboard_->set("bt_action_type", bt_action_type);
         my_blackboard_->set("num_cycles", action_sequence.size());
         my_blackboard_->set("replanning_request", 0);
@@ -370,11 +374,21 @@ public:
             ltl_trace_msg_.header.stamp = ros::Time::now();
             ltl_trace_msg_.action_sequence = act_trace;
             ltl_trace_msg_.ts_state_sequence.clear();
-            for(const auto& state_0 : state_trace){
+
+            if(state_trace.empty()){
+                BT::LTLState_Sequence state_trace_desired;
+                my_blackboard_->get(std::string("ltl_state_desired_sequence"), state_trace_desired);
                 ltl_automaton_msgs::TransitionSystemState s;
                 s.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
-                s.states = state_0;
+                s.states = state_trace_desired[0];
                 ltl_trace_msg_.ts_state_sequence.push_back(s);
+            } else {
+                for (const auto &state_0: state_trace) {
+                    ltl_automaton_msgs::TransitionSystemState s;
+                    s.state_dimension_names = transition_system_["state_dim"].as<std::vector<std::string>>();
+                    s.states = state_0;
+                    ltl_trace_msg_.ts_state_sequence.push_back(s);
+                }
             }
             ltl_trace_pub_.publish(ltl_trace_msg_);
             res.result = 0;

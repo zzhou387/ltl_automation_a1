@@ -33,7 +33,7 @@
   <!-- Run A1 navigation and simulated mocap -->
   <include file="$(find unitree_navigate)/launch/navigate_mocap.launch">
     <arg name="agent_name" value="$(arg agent_name)"/>
-    <arg name="world_name" value="hospital_world"/>
+    <arg name="world_name" value="hospital_map"/>
     <arg name="run_mocap" value="true"/>
   </include>
 
@@ -47,6 +47,7 @@
     <remap from="synchronization_service" to="/$(arg agent_name)/synchronization_service"/>
     <remap from="replanning_request" to="/$(arg agent_name)/replanning_request"/>
     <remap from="load_disturbance" to="/$(arg agent_name)/load_disturbance"/>
+    <remap from="fake_input" to="/$(arg agent_name)/fake_input"/>
   </node>
 
 

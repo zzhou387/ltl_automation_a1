@@ -287,8 +287,8 @@ public:
                 setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             } else if(current_state.value() != ltl_state_seq_executed.value().back()){
                 // Push the current state to the state history
-                ltl_state_seq_executed.value().push_back(current_state.value());
-                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+//                ltl_state_seq_executed.value().push_back(current_state.value());
+//                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             }
             return NodeStatus::SUCCESS;
         } else {
@@ -327,8 +327,8 @@ public:
                 setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             } else if(current_state.value() != ltl_state_seq_executed.value().back()){
                 // Push the current state to the state history
-                ltl_state_seq_executed.value().push_back(current_state.value());
-                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+//                ltl_state_seq_executed.value().push_back(current_state.value());
+//                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             }
             return NodeStatus::SUCCESS;
         } else {
@@ -362,8 +362,8 @@ public:
                 setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             } else if(current_state.value() != ltl_state_seq_executed.value().back()){
                 // Push the current state to the state history
-                ltl_state_seq_executed.value().push_back(current_state.value());
-                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+//                ltl_state_seq_executed.value().push_back(current_state.value());
+//                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             }
             return NodeStatus::SUCCESS;
         } else {
