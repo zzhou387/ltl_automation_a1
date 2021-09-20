@@ -78,6 +78,11 @@ public:
         }
         auto desired_state = desired_state_seq.value()[0];
         if(desired_state == current_state.value()){
+            // If only have synchronization or stay action; directly pass the check
+//            if(desired_state_seq.value().size() == 2 && desired_state == desired_state_seq.value()[desired_state_seq.value().size()-1]){
+//                return NodeStatus::SUCCESS;
+//            }
+
             std::cout << name() << ": Check ltl state: " << "SUCCESS" << std::endl;
             std::cout << "CURRENT: ";
             for(const auto& curr_state : current_state.value()){
@@ -287,8 +292,8 @@ public:
                 setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             } else if(current_state.value() != ltl_state_seq_executed.value().back()){
                 // Push the current state to the state history
-//                ltl_state_seq_executed.value().push_back(current_state.value());
-//                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             }
             return NodeStatus::SUCCESS;
         } else {
@@ -327,8 +332,8 @@ public:
                 setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             } else if(current_state.value() != ltl_state_seq_executed.value().back()){
                 // Push the current state to the state history
-//                ltl_state_seq_executed.value().push_back(current_state.value());
-//                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             }
             return NodeStatus::SUCCESS;
         } else {
@@ -362,8 +367,8 @@ public:
                 setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             } else if(current_state.value() != ltl_state_seq_executed.value().back()){
                 // Push the current state to the state history
-//                ltl_state_seq_executed.value().push_back(current_state.value());
-//                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
+                ltl_state_seq_executed.value().push_back(current_state.value());
+                setOutput<BT::LTLState_Sequence>("ltl_state_executed_sequence", ltl_state_seq_executed.value());
             }
             return NodeStatus::SUCCESS;
         } else {

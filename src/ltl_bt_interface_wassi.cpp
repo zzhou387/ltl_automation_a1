@@ -255,9 +255,18 @@ public:
                     replanning_request_.publish(replanning_status);
                 }
             }
-            else if (status == NodeStatus::FAILURE){
+            else if (status == NodeStatus::FAILURE || status == NodeStatus::SUCCESS){
                 if(client_->isServerConnected()){
                     client_->cancelGoal();
+                    ROS_WARN("Goal cancelled");
+                }
+
+                // If the last state change is not captured (happens to non-reactive state check)
+                BT::LTLState_Sequence state_trace;
+                my_blackboard_->get(std::string("ltl_state_executed_sequence"), state_trace);
+                if(current_ltl_state_ != state_trace.back()){
+                    state_trace.push_back(current_ltl_state_);
+                    my_blackboard_->set("ltl_state_executed_sequence", state_trace);
                 }
             }
 
@@ -293,6 +302,7 @@ public:
             action_sequence.push_back(act);
         }
 
+        int num_cycles = action_sequence.size();
         bool sanity_check1 = false;
         YAML::Node action_dict;
         std::string bt_action_type;
@@ -309,6 +319,17 @@ public:
                     break;
                 }
             }
+
+            // Check the synchronization only action; no need to run the tree
+            if(action_sequence.size() == 1){
+                if(bt_action_type == "stay"){
+                    num_cycles = 0;
+                    executed_state_seq = desired_state_seq;
+                    executed_action_sequence = action_sequence;
+                }
+            }
+        } else {
+            executed_state_seq = desired_state_seq;
         }
 
         if (!sanity_check1) {
@@ -321,7 +342,7 @@ public:
         my_blackboard_->set("action_sequence_executed", executed_action_sequence);
         my_blackboard_->set("current_action", current_action);
         my_blackboard_->set("bt_action_type", bt_action_type);
-        my_blackboard_->set("num_cycles", action_sequence.size());
+        my_blackboard_->set("num_cycles", num_cycles);
         my_blackboard_->set("replanning_request", 0);
         my_blackboard_->set("replanning_fake_input", 0);
 
