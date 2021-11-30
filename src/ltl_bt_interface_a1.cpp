@@ -339,6 +339,7 @@ public:
             }
         } else {
             executed_state_seq = desired_state_seq;
+            sanity_check1 = true;
         }
 
         if (!sanity_check1) {
