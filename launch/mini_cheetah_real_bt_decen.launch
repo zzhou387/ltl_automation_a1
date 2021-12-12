@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- Arguments -->
-  <arg name="agent_name" default="turtlebot"/>
+  <arg name="agent_name" default="mini_cheetah"/>
   <arg name="plan_name" default="/action_plan_1"/>
   <arg name="pose_x" default="0.0" />
   <arg name="pose_y" default="0.0" />
@@ -10,22 +10,22 @@
 
   <!-- Run mobile robot LTL node with the 2D pose region monitor-->
   <node name="$(arg agent_name)_region_2d_pose_monitor" pkg="ltl_automaton_std_transition_systems" type="region_2d_pose_monitor.py" output="screen" >
-    <remap from="transition_system_textfile" to="transition_system_turtlebot_textfile" />
+    <remap from="transition_system_textfile" to="transition_system_mini_cheetah_textfile" />
     <remap from="agent_2d_region_pose" to="/amcl_pose" />
     <remap from="current_region" to="$(arg agent_name)/current_region" />
   </node>
 
   <!-- Run Turtlebot navigation -->
-  <include file="$(find turtlebot_navigation)/launch/amcl_demo.launch">
-    <arg name="map_file" value="$(find turtlebot_navigation)/maps/marc_2.yaml"/>
-    <arg name="initial_pose_x" value="$(arg pose_x)"/>
-    <arg name="initial_pose_y" value="$(arg pose_y)"/>
-    <arg name="initial_pose_a" value="$(arg init_yaw)"/>
-  </include>
+<!--  <include file="$(find turtlebot_navigation)/launch/amcl_demo.launch">-->
+<!--    <arg name="map_file" value="$(find turtlebot_navigation)/maps/marc_2.yaml"/>-->
+<!--    <arg name="initial_pose_x" value="$(arg pose_x)"/>-->
+<!--    <arg name="initial_pose_y" value="$(arg pose_y)"/>-->
+<!--    <arg name="initial_pose_a" value="$(arg init_yaw)"/>-->
+<!--  </include>-->
 
   <!-- Run BT node -->
-  <node name="ltl_bt_interface_openshelf" pkg="ltl_automation_a1" type="ltl_bt_interface_openshelf" required="true" output="screen">
-    <remap from="transition_system_textfile" to="transition_system_turtlebot_textfile" />
+  <node name="ltl_bt_interface_mini_cheetah" pkg="ltl_automation_a1" type="ltl_bt_interface_openshelf" required="true" output="screen">
+    <remap from="transition_system_textfile" to="transition_system_mini_cheetah_textfile" />
 <!--    <remap from="/move_base" to="/$(arg agent_name)/move_base" />-->
     <remap from="current_region" to="$(arg agent_name)/current_region" />
     <remap from="/action_plan" to="$(arg plan_name)" />
@@ -41,6 +41,6 @@
 <!--    <param name="robot_name" value="turtlebot" />-->
 <!--  </node>-->
 
-  <include file="$(find turtlebot_rviz_launchers)/launch/view_navigation.launch" />
+<!--  <include file="$(find turtlebot_rviz_launchers)/launch/view_navigation.launch" />-->
 
 </launch>
