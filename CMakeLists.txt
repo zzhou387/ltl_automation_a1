@@ -151,18 +151,21 @@ add_executable(ltl_bt_interface_a1 src/ltl_bt_interface_a1.cpp)
 target_link_libraries(ltl_bt_interface_a1
   ${catkin_LIBRARIES} yaml-cpp
 )
+add_dependencies(ltl_bt_interface_a1 ltl_automation_a1_generate_messages_cpp)
 
 add_executable(ltl_bt_interface_openshelf src/ltl_bt_interface_openshelf.cpp)
 
 target_link_libraries(ltl_bt_interface_openshelf
   ${catkin_LIBRARIES} yaml-cpp
 )
+add_dependencies(ltl_bt_interface_openshelf ltl_automation_a1_generate_messages_cpp)
 
 add_executable(ltl_bt_interface_wassi src/ltl_bt_interface_wassi.cpp)
 
 target_link_libraries(ltl_bt_interface_wassi
   ${catkin_LIBRARIES} yaml-cpp
 )
+add_dependencies(ltl_bt_interface_wassi ltl_automation_a1_generate_messages_cpp)
 
 add_executable(yaml_test src/yaml_test.cpp)
 
