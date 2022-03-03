@@ -53,7 +53,7 @@ public:
 
         // Get TS for param
         std::string ts_filepath;
-        ts_filepath = ros::package::getPath(package_name_2).append("/config/ts_turtlebot_test.yaml");
+        ts_filepath = ros::package::getPath(package_name_2).append("/config/ts_delivery.yaml");
 //        nh_.getParam("transition_system_textfile", ts_filepath);
         transition_system_ = YAML::LoadFile(ts_filepath);
 
